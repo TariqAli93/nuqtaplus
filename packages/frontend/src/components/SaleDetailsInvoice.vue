@@ -1,26 +1,41 @@
 <template>
   <div class="print-container">
     <!-- ===== HEADER ===== -->
-    <header class="invoice-header">
-      <div>
-        <h4>فاتورة بيع</h4>
-        <p>
-          رقم الفاتورة: <strong>{{ props.sale.invoiceNumber }}</strong>
-        </p>
-        <p>التاريخ: {{ toYmd(props.sale.createdAt) }}</p>
+    <v-card variant="outlined" class="invoice-header mb-4">
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="6">
+            <h4 class="text-primary mb-2">فاتورة بيع</h4>
+            <p class="mb-1">
+              رقم الفاتورة: <strong>{{ props.sale.invoiceNumber }}</strong>
+            </p>
+            <p class="mb-2">التاريخ: {{ toYmd(props.sale.createdAt) }}</p>
 
-        <div class="status-chip" :class="props.sale.status">
-          {{ getStatusText(props.sale.status) }}
-        </div>
-      </div>
+            <v-chip
+              :color="
+                props.sale.status === 'completed'
+                  ? 'success'
+                  : props.sale.status === 'pending'
+                    ? 'warning'
+                    : 'error'
+              "
+              variant="flat"
+              size="small"
+            >
+              {{ getStatusText(props.sale.status) }}
+            </v-chip>
+          </v-col>
 
-      <div>
-        <h4>اسم الشركة</h4>
-        <p>العنوان: شارع المثال، المدينة، البلد</p>
-        <p>الهاتف: +964 123 456 7890</p>
-        <p>البريد الإلكتروني: example@example.com</p>
-      </div>
-    </header>
+          <v-col cols="12" md="6" class="text-start">
+            <h4 class="mb-2 text-primary">{{ company?.name }}</h4>
+            <p class="mb-1">
+              العنوان: {{ company?.city }}, {{ company?.area }}, {{ company?.street }}
+            </p>
+            <p class="mb-1">الهاتف: {{ company?.phone }}</p>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
 
     <hr class="divider" />
 
@@ -35,6 +50,9 @@
         <h5>معلومات الدفع</h5>
         <p><strong>نوع الدفع:</strong> {{ getPaymentTypeText(props.sale.paymentType) }}</p>
         <p><strong>العملة:</strong> {{ props.sale.currency }}</p>
+        <p v-if="props.sale.exchangeRate && props.sale.exchangeRate !== 1">
+          <strong>سعر الصرف:</strong> {{ props.sale.exchangeRate.toLocaleString() }}
+        </p>
         <p>
           <strong>المدفوع:</strong>
           <span class="success">{{ formatCurrency(props.sale.paidAmount) }}</span>
@@ -68,7 +86,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, i) in props.sale.items" :key="item.id">
+          <tr v-for="(item, i) in items" :key="item.id">
             <td>{{ i + 1 }}</td>
             <td>{{ item.productName }}</td>
             <td>{{ item.quantity }}</td>
@@ -143,6 +161,9 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue';
+import { useSettingsStore } from '../stores/settings';
+
 const props = defineProps({
   sale: {
     type: Object || null,
@@ -150,7 +171,31 @@ const props = defineProps({
   },
 });
 
-const formatCurrency = (val) => `${parseFloat(val).toLocaleString()} IQD`;
+const settingsStore = useSettingsStore();
+
+const company = ref({});
+
+const items = props.sale.items.reduce((acc, item) => {
+  acc.push({
+    ...item,
+    // حساب سعر الوحدة بعد الخصم و الاقساط اذا وجد
+    unitPriceAfterDiscount: item.unitPrice - (item.discount || 0),
+    unitPriceAfterInstallment: item.unitPriceAfterDiscount / (item.installments?.length || 1),
+    subtotal: item.unitPrice * item.quantity,
+  });
+  return acc;
+}, []);
+
+// Format currency dynamically based on sale currency
+const formatCurrency = (val) => {
+  const currency = props.sale.currency || 'IQD';
+  return new Intl.NumberFormat('ar-IQ', {
+    style: 'currency',
+    currency: currency,
+    maximumFractionDigits: currency === 'USD' ? 2 : 0,
+  }).format(val || 0);
+};
+
 const toYmd = (d) => new Date(d).toISOString().split('T')[0];
 
 const getStatusText = (s) =>
@@ -167,6 +212,12 @@ const getPaymentMethodText = (m) =>
 
 const getInstallmentStatusLabel = (i) =>
   i.status === 'paid' ? 'مدفوع' : new Date(i.dueDate) < new Date() ? 'متأخر' : 'قيد الانتظار';
+
+onMounted(async () => {
+  await settingsStore.fetchAllSettings();
+  company.value = settingsStore.settings.company;
+  console.log('Settings Store:', settingsStore.settings.company);
+});
 </script>
 
 <style scoped>
@@ -183,10 +234,6 @@ const getInstallmentStatusLabel = (i) =>
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-.invoice-header h4 {
-  margin: 0;
-  color: #1565c0;
 }
 .status-chip {
   padding: 5px;

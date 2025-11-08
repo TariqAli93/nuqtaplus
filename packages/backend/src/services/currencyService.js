@@ -1,4 +1,4 @@
-import { db, saveDatabase } from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { currencySettings, activityLogs } from '../models/schema.js';
 import { eq } from 'drizzle-orm';
 

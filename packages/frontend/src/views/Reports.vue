@@ -32,7 +32,7 @@
 
     <!-- Filters -->
     <v-card class="pa-4 mb-8">
-      <v-row dense="comfortable">
+      <v-row density="comfortable">
         <v-col cols="12" md="4">
           <v-menu
             v-model="menus.start"
@@ -108,7 +108,7 @@
     </v-card>
 
     <!-- Main Stats -->
-    <v-row v-if="report" dense>
+    <v-row v-if="report" density="comfortable">
       <!-- عدد المبيعات -->
       <v-col cols="12" md="4">
         <v-card class="pa-4">

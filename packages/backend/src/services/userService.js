@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { users, activityLogs } from '../models/index.js';
 import { eq, like, and } from 'drizzle-orm';
 import { hashPassword } from '../utils/helpers.js';
@@ -25,7 +25,6 @@ export class UserService {
         fullName: users.fullName,
         phone: users.phone,
         isActive: users.isActive,
-        mfaEnabled: users.mfaEnabled,
         roleId: users.roleId,
       })
       .from(users)
@@ -44,7 +43,6 @@ export class UserService {
         fullName: users.fullName,
         phone: users.phone,
         isActive: users.isActive,
-        mfaEnabled: users.mfaEnabled,
         roleId: users.roleId,
       })
       .from(users)
@@ -84,6 +82,8 @@ export class UserService {
       details: `Created user ${user.username}`,
     });
 
+    saveDatabase();
+
     return this.getById(user.id);
   }
 
@@ -107,6 +107,8 @@ export class UserService {
       details: `Updated user ${id}`,
     });
 
+    saveDatabase();
+
     return this.getById(id);
   }
 
@@ -123,6 +125,7 @@ export class UserService {
       details: `Password reset for user ${id}`,
     });
 
+    saveDatabase();
     return { success: true };
   }
 
@@ -136,6 +139,8 @@ export class UserService {
       resourceId: id,
       details: `Deactivated user ${id}`,
     });
+
+    saveDatabase();
     return { success: true };
   }
 

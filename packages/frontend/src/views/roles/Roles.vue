@@ -126,13 +126,11 @@
                         <div class="flex flex-wrap gap-2">
                           <v-list>
                             <v-list-item v-for="perm in group" :key="perm.id">
-                              <v-list-item-content>
-                                <v-checkbox
-                                  v-model="selectedPermIds"
-                                  :value="perm.id"
-                                  :label="translatePermission(perm.name)"
-                                />
-                              </v-list-item-content>
+                              <v-checkbox
+                                v-model="selectedPermIds"
+                                :value="perm.id"
+                                :label="translatePermission(perm.name)"
+                              />
                             </v-list-item>
                           </v-list>
                         </div>
@@ -163,11 +161,9 @@
                       <v-expansion-panel-text>
                         <v-list>
                           <v-list-item v-for="perm in group" :key="perm.id">
-                            <v-list-item-content>
-                              <v-chip :color="getActionColor(perm.name)">
-                                {{ translatePermission(perm.name) }}
-                              </v-chip>
-                            </v-list-item-content>
+                            <v-chip :color="getActionColor(perm.name)">
+                              {{ translatePermission(perm.name) }}
+                            </v-chip>
                           </v-list-item>
                         </v-list>
                       </v-expansion-panel-text>

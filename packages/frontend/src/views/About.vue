@@ -1,81 +1,80 @@
 <template>
   <div>
-    <h1 class="text-h4 font-weight-bold mb-6">الإعدادات</h1>
+    <!-- Header -->
+    <!-- 🔹 شريط الأدوات العلوي -->
+    <v-card class="mb-4 d-flex justify-space-between align-center">
+      <div class="flex justify-space-between items-center pa-3">
+        <div class="text-h6 font-semibold text-primary">الاعدادات</div>
+      </div>
 
-    <v-card class="mb-4">
-      <v-card-title>معلومات النظام</v-card-title>
-      <v-card-text>
-        <v-list>
-          <v-list-item>
-            <v-list-item-title>اسم النظام</v-list-item-title>
-            <v-list-item-subtitle>CodeLIMS</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title>الإصدار</v-list-item-title>
-            <v-list-item-subtitle>1.0.0</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title>تاريخ الإصدار</v-list-item-title>
-            <v-list-item-subtitle>2025</v-list-item-subtitle>
-          </v-list-item>
-        </v-list>
-      </v-card-text>
+      <v-tabs v-model="activeTab" align-tabs="start">
+        <v-tab value="company">
+          <v-icon start>mdi-domain</v-icon>
+          معلومات الشركة
+        </v-tab>
+        <v-tab value="currency">
+          <v-icon start>mdi-currency-usd</v-icon>
+          إعدادات العملة
+        </v-tab>
+        <v-tab value="backup">
+          <v-icon start>mdi-backup-restore</v-icon>
+          النسخ الاحتياطي
+        </v-tab>
+      </v-tabs>
     </v-card>
 
-    <v-card>
-      <v-card-title>الحساب الشخصي</v-card-title>
-      <v-card-text>
-        <v-list>
-          <v-list-item>
-            <v-list-item-title>الاسم الكامل</v-list-item-title>
-            <v-list-item-subtitle>{{ authStore.user?.fullName }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title>اسم المستخدم</v-list-item-title>
-            <v-list-item-subtitle>{{ authStore.user?.username }}</v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title>الدور</v-list-item-title>
-            <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
-          </v-list-item>
-        </v-list>
-      </v-card-text>
-    </v-card>
+    <!-- Error Alert -->
+    <v-alert
+      v-if="settingsStore.error"
+      type="error"
+      variant="tonal"
+      closable
+      class="mb-4"
+      @click:close="settingsStore.clearError"
+    >
+      {{ settingsStore.error }}
+    </v-alert>
+
+    <!-- Settings Tabs -->
+    <v-card class="mb-4"> </v-card>
+
+    <v-window v-model="activeTab">
+      <!-- Company Information Tab -->
+      <v-window-item value="company" class="pa-0">
+        <CompanyInfoForm :data="settingsStore.companyInfo" />
+      </v-window-item>
+
+      <!-- Currency Settings Tab -->
+      <v-window-item value="currency" class="pa-0">
+        <CurrencySettings />
+      </v-window-item>
+
+      <!-- Backup Tab -->
+      <v-window-item value="backup">
+        <BackupSettings />
+      </v-window-item>
+    </v-window>
+
+    <!-- Success Snackbar -->
+    <v-snackbar v-model="showSuccessMessage" color="success" timeout="3000" location="top">
+      <v-icon start>mdi-check-circle</v-icon>
+      {{ successMessage }}
+    </v-snackbar>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import { useCurrencyStore } from '@/stores/currency';
+import { ref } from 'vue';
+import { useSettingsStore } from '../stores/settings';
+import CompanyInfoForm from '../components/settings/CompanyInfoForm.vue';
+import CurrencySettings from '../components/settings/CurrencySettings.vue';
+import BackupSettings from '../components/settings/BackupSettings.vue';
 
-const authStore = useAuthStore();
-const currencyStore = useCurrencyStore();
+// Stores
+const settingsStore = useSettingsStore();
 
-const exchangeRate = ref(currencyStore.iqd ? currencyStore.iqd.exchangeRate : 1310);
-const loading = ref(false);
-
-onMounted(async () => {
-  loading.value = true;
-  try {
-    await currencyStore.fetchCurrencies();
-
-    // Get IQD exchange rate
-    const iqd = currencyStore.iqd;
-    if (iqd) {
-      exchangeRate.value = iqd.exchangeRate;
-    }
-  } finally {
-    loading.value = false;
-  }
-});
-
-const updateExchangeRate = async () => {
-  loading.value = true;
-  try {
-    await currencyStore.updateExchangeRate('IQD', exchangeRate.value);
-  } finally {
-    loading.value = false;
-  }
-};
+// State
+const activeTab = ref('company');
+const showSuccessMessage = ref(false);
+const successMessage = ref('');
 </script>

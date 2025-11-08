@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { categories } from '../models/index.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 import { eq, like, desc } from 'drizzle-orm';
@@ -17,6 +17,8 @@ export class CategoryService {
     }
 
     const [newCategory] = await db.insert(categories).values(categoryData).returning();
+
+    saveDatabase();
 
     return newCategory;
   }
@@ -63,6 +65,8 @@ export class CategoryService {
       throw new NotFoundError('Category');
     }
 
+    saveDatabase();
+
     return updated;
   }
 
@@ -72,6 +76,8 @@ export class CategoryService {
     if (!deleted) {
       throw new NotFoundError('Category');
     }
+
+    saveDatabase();
 
     return { message: 'Category deleted successfully' };
   }

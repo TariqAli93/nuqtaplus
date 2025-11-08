@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { permissions, activityLogs } from '../models/index.js';
 import { eq, like } from 'drizzle-orm';
 import { ConflictError, NotFoundError } from '../utils/errors.js';
@@ -39,6 +39,8 @@ export class PermissionService {
       resourceId: perm.id,
       details: `Created permission ${perm.name}`,
     });
+
+    saveDatabase();
     return perm;
   }
 
@@ -60,6 +62,8 @@ export class PermissionService {
       resourceId: id,
       details: `Updated permission ${id}`,
     });
+
+    saveDatabase();
     return this.getById(id);
   }
 
@@ -73,6 +77,8 @@ export class PermissionService {
       resourceId: id,
       details: `Deleted permission ${id}`,
     });
+
+    saveDatabase();
     return { success: true };
   }
 }

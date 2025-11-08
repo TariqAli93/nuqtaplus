@@ -213,6 +213,7 @@ const permissionsList = {
   products: ['manage', 'create', 'read', 'update', 'delete'],
   sales: ['manage', 'create', 'read', 'update', 'delete'],
   categories: ['manage', 'create', 'read', 'update', 'delete'],
+  settings: ['manage', 'create', 'read', 'update', 'delete'],
 };
 
 // 🔸 الترجمة العربية

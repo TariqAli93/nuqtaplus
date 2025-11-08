@@ -467,6 +467,30 @@ textarea,
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (prefers-color-scheme: light) {
+  html,
+  body {
+    /* تحسين وضوح النصوص في الوضع الفاتح */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-weight: var(--font-weight-regular);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+.light {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* ============================================
    14. Print Styles - أنماط الطباعة
    ============================================ */
@@ -525,15 +549,6 @@ textarea,
 /* ============================================
    16. Accessibility - إمكانية الوصول
    ============================================ */
-
-/* تحسين قابلية القراءة للمستخدمين ذوي الإعاقة البصرية */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
 
 /* تحسين التباين للنصوص */
 @media (prefers-contrast: high) {

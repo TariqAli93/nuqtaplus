@@ -2,38 +2,17 @@
   "name": "@codelims/frontend",
   "version": "1.0.0",
   "description": "CodeLIMS Frontend - Electron + Vue 3 + Vuetify",
-  "main": "src/main.js",
+  "main": "dist-electron/main/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && pnpm --filter @codelims/electron electron:dev\"",
-    "electron:build": "vite build && electron-builder",
     "build:electron": "vite build && electron-builder",
+    "build:win": "vite build && electron-builder --win",
+    "preview": "vite preview",
+    "electron:dev": "concurrently pnpm:dev && wait-on http://localhost:5173 && electron .",
     "lint": "eslint src",
     "format": "prettier --write src"
-  },
-  "build": {
-    "appId": "com.codelims.app",
-    "productName": "CodeLIMS",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "public/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
@@ -51,12 +30,58 @@
     "autoprefixer": "^10.4.21",
     "chart.js": "^4.5.1",
     "concurrently": "^9.1.2",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12",
+    "electron-builder-squirrel-windows": "^26.0.12",
     "postcss": "^8.5.6",
     "sass": "^1.93.2",
     "tailwindcss": "^4.1.16",
     "vite": "^6.0.3",
+    "vite-plugin-electron": "^0.29.0",
     "vite-plugin-vuetify": "^2.0.4",
     "vue-chartjs": "^5.3.2",
     "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.codelims.app",
+    "productName": "CodeLIMS",
+    "files": [
+      "package.json",
+      "dist-electron/**/*",
+      "node_modules/**/*",
+      "backend/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../../dist-backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "dist-electron",
+        "to": "dist-electron",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../backend/node_modules",
+        "to": "backend/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "../../release"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }

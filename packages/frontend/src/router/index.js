@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 // Layouts
@@ -118,7 +118,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: import.meta.env.PROD ? createWebHashHistory() : createWebHistory(),
   routes,
 });
 

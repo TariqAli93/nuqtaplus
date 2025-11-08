@@ -9,6 +9,8 @@ export class SaleController {
   async create(request, reply) {
     const validatedData = saleSchema.parse(request.body);
     const sale = await saleService.create(validatedData, request.user.id);
+
+    console.log(request.body);
     return reply.code(201).send({
       success: true,
       data: sale,

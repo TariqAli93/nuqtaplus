@@ -1,5 +1,5 @@
-import db from '../db.js';
-import { customers } from '../models/index.js';
+import db, { saveDatabase } from '../db.js';
+import { customers, sales, saleItems } from '../models/index.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 import { eq, like, or, desc, count } from 'drizzle-orm';
 
@@ -12,8 +12,8 @@ export class CustomerService {
       .where(eq(customers.phone, customerData.phone))
       .limit(1);
 
-    if (existing) {
-      throw new ConflictError('Customer with this phone number already exists');
+    if (existing && customerData.phone.trim() !== '') {
+      throw new ConflictError(`Customer with phone ${customerData.phone} already exists`);
     }
 
     const [newCustomer] = await db
@@ -23,6 +23,8 @@ export class CustomerService {
         createdBy: userId,
       })
       .returning();
+
+    saveDatabase();
 
     return newCustomer;
   }
@@ -43,6 +45,10 @@ export class CustomerService {
 
     const [{ total }] = await db.select({ total: count() }).from(customers);
 
+    // join sales table
+    query = query.leftJoin(sales, eq(customers.id, sales.customerId));
+    query = query.leftJoin(saleItems, eq(sales.id, saleItems.saleId));
+
     return {
       data: results,
       meta: {
@@ -61,6 +67,19 @@ export class CustomerService {
       throw new NotFoundError('Customer');
     }
 
+    // join sales table and saleItems
+    const salesData = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.customerId, id))
+      .leftJoin(saleItems, eq(sales.id, saleItems.saleId));
+
+    salesData.forEach((sale) => {
+      sale.items = saleItems.filter((item) => item.saleId === sale.id);
+    });
+
+    customer.sales = salesData;
+
     return customer;
   }
 
@@ -78,6 +97,8 @@ export class CustomerService {
       throw new NotFoundError('Customer');
     }
 
+    saveDatabase();
+
     return updated;
   }
 
@@ -87,6 +108,8 @@ export class CustomerService {
     if (!deleted) {
       throw new NotFoundError('Customer');
     }
+
+    saveDatabase();
 
     return { message: 'Customer deleted successfully' };
   }
@@ -102,6 +125,12 @@ export class CustomerService {
       })
       .where(eq(customers.id, customerId))
       .returning();
+
+    if (!updated) {
+      throw new NotFoundError('Customer');
+    }
+
+    saveDatabase();
 
     return updated;
   }

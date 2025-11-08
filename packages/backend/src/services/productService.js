@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { products, categories } from '../models/index.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 import { eq, like, or, desc, count, lte } from 'drizzle-orm';
@@ -25,6 +25,8 @@ export class ProductService {
         createdBy: userId,
       })
       .returning();
+
+    saveDatabase();
 
     return newProduct;
   }
@@ -130,6 +132,8 @@ export class ProductService {
       throw new NotFoundError('Product');
     }
 
+    saveDatabase();
+
     return updated;
   }
 
@@ -139,6 +143,8 @@ export class ProductService {
     if (!deleted) {
       throw new NotFoundError('Product');
     }
+
+    saveDatabase();
 
     return { message: 'Product deleted successfully' };
   }
@@ -154,6 +160,8 @@ export class ProductService {
       })
       .where(eq(products.id, productId))
       .returning();
+
+    saveDatabase();
 
     return updated;
   }

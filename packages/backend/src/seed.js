@@ -1,7 +1,14 @@
 import db from './db.js';
-import { users, roles, permissions, rolePermissions } from './models/index.js';
-import { hashPassword } from './utils/helpers.js';
-import { sql, eq } from 'drizzle-orm';
+import {
+  roles,
+  permissions,
+  rolePermissions,
+  categories,
+  products,
+  customers,
+  settings,
+} from './models/index.js';
+import { sql } from 'drizzle-orm';
 
 async function seed() {
   console.log('🌱 Starting database seeding...\n');
@@ -102,6 +109,132 @@ async function seed() {
     } else {
       console.log('↩️ Role-permissions already exist');
     }
+
+    // categories, products, customers, and sales seeding can be added here
+
+    // categories
+    console.log('\n→ Seeding categories...');
+    await insertIfEmpty(
+      categories,
+      [
+        { name: 'Electronics', description: 'Electronic gadgets and devices' },
+        { name: 'Clothing', description: 'Apparel and garments' },
+        { name: 'Books', description: 'Printed and digital books' },
+      ],
+      'Categories'
+    );
+
+    // products
+    console.log('\n→ Seeding products...');
+    const allCategories = await db.select().from(categories).all();
+    const electronicsCategory = allCategories.find((c) => c.name === 'Electronics');
+    const clothingCategory = allCategories.find((c) => c.name === 'Clothing');
+    const booksCategory = allCategories.find((c) => c.name === 'Books');
+
+    //     name
+    // sku
+    // barcode
+    // categoryId
+    // description
+    // costPrice
+    // sellingPrice
+    // stock
+    // minStock
+
+    await insertIfEmpty(
+      products,
+      [
+        {
+          name: 'Smartphone',
+          sku: 'ELEC-001',
+          barcode: '1234567890123',
+          categoryId: electronicsCategory.id,
+          description: 'Latest model smartphone with advanced features',
+          costPrice: 300,
+          sellingPrice: 500,
+          stock: 50,
+          minStock: 5,
+        },
+        {
+          name: 'Jeans',
+          sku: 'CLOTH-001',
+          barcode: '2345678901234',
+          categoryId: clothingCategory.id,
+          description: 'Comfortable blue jeans',
+          costPrice: 20,
+          sellingPrice: 40,
+          stock: 100,
+          minStock: 10,
+        },
+        {
+          name: 'Science Fiction Novel',
+          sku: 'BOOK-001',
+          barcode: '3456789012345',
+          categoryId: booksCategory.id,
+          description: 'A thrilling science fiction adventure',
+          costPrice: 5,
+          sellingPrice: 15,
+          stock: 200,
+          minStock: 20,
+        },
+      ],
+      'Products'
+    );
+
+    // customers
+    console.log('\n→ Seeding customers...');
+    await insertIfEmpty(
+      customers,
+      [
+        {
+          name: 'John Doe',
+          address: '123 Main St, Anytown, USA',
+          city: 'Anytown',
+          phone: '123-456-7890',
+        },
+        {
+          name: 'Jane Smith',
+          address: '456 Elm St, Othertown, USA',
+          city: 'Othertown',
+          phone: '987-654-3210',
+        },
+        {
+          name: 'Alice Johnson',
+          address: '789 Oak St, Sometown, USA',
+          city: 'Sometown',
+          phone: '555-555-5555',
+        },
+      ],
+      'Customers'
+    );
+
+    // ========== CURRENCY SETTINGS ==========
+    console.log('\n→ Creating currency settings...');
+    const settingsCount = await countTable(settings);
+    if (settingsCount === 0) {
+      await db.insert(settings).values([
+        {
+          key: 'currency.default',
+          value: 'IQD',
+          description: 'العملة الافتراضية للنظام',
+        },
+        {
+          key: 'currency.usd_rate',
+          value: '1500',
+          description: 'سعر صرف الدولار الأمريكي مقابل الدينار العراقي',
+        },
+        {
+          key: 'currency.iqd_rate',
+          value: '1',
+          description: 'سعر صرف الدينار العراقي (العملة المرجعية)',
+        },
+      ]);
+      console.log('✓ Currency settings inserted');
+    } else {
+      console.log('↩️ Settings already exist');
+    }
+
+    console.log('\n🌱 Database seeding completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error.message);
     console.error(error.stack);

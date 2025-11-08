@@ -10,8 +10,6 @@ export const users = sqliteTable('users', {
   phone: text('phone'),
   roleId: integer('role_id').references(() => roles.id),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
-  mfaEnabled: integer('mfa_enabled', { mode: 'boolean' }).default(false),
-  mfaSecret: text('mfa_secret'),
   lastLoginAt: text('last_login_at'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
@@ -23,6 +21,8 @@ export const roles = sqliteTable('roles', {
   name: text('name').notNull().unique(),
   description: text('description'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Permissions Table
@@ -33,6 +33,8 @@ export const permissions = sqliteTable('permissions', {
   action: text('action').notNull(),
   description: text('description'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Role Permissions Junction Table
@@ -44,22 +46,24 @@ export const rolePermissions = sqliteTable('role_permissions', {
     .notNull()
     .references(() => permissions.id, { onDelete: 'cascade' }),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Customers Table
 export const customers = sqliteTable('customers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  phone: text('phone').notNull(),
+  phone: text('phone'),
   address: text('address'),
   city: text('city'),
   notes: text('notes'),
   totalPurchases: real('total_purchases').default(0),
   totalDebt: real('total_debt').default(0),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
-  createdBy: integer('created_by').references(() => users.id),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Categories Table
@@ -69,6 +73,8 @@ export const categories = sqliteTable('categories', {
   description: text('description'),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Products Table
@@ -88,9 +94,9 @@ export const products = sqliteTable('products', {
   supplier: text('supplier'),
   status: text('status').notNull().default('available'), // available, out_of_stock, discontinued
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
-  createdBy: integer('created_by').references(() => users.id),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Sales Table
@@ -105,14 +111,15 @@ export const sales = sqliteTable('sales', {
   currency: text('currency').notNull().default('USD'),
   exchangeRate: real('exchange_rate').default(1),
   interestRate: real('interest_rate').default(0), // New field for interest rate
+  interestAmount: real('interest_amount').default(0), // New field for interest amount
   paymentType: text('payment_type').notNull(), // 'cash', 'installment', 'mixed'
   paidAmount: real('paid_amount').default(0),
   remainingAmount: real('remaining_amount').default(0),
   status: text('status').notNull().default('pending'), // 'pending', 'completed', 'cancelled'
   notes: text('notes'),
-  createdBy: integer('created_by').references(() => users.id),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Sale Items Table
@@ -141,8 +148,8 @@ export const payments = sqliteTable('payments', {
   paymentMethod: text('payment_method').notNull(), // 'cash', 'card', 'bank_transfer'
   paymentDate: text('payment_date').default(sql`CURRENT_TIMESTAMP`),
   notes: text('notes'),
-  createdBy: integer('created_by').references(() => users.id),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Installments Table
@@ -154,13 +161,14 @@ export const installments = sqliteTable('installments', {
   dueAmount: real('due_amount').notNull(),
   paidAmount: real('paid_amount').default(0),
   remainingAmount: real('remaining_amount').notNull(),
-  currency: text('currency').notNull().default('USD'),
+  currency: text('currency').notNull().default('IQD'),
   dueDate: text('due_date').notNull(),
   paidDate: text('paid_date'),
   status: text('status').notNull().default('pending'), // 'pending', 'paid', 'overdue', 'cancelled'
   notes: text('notes'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdBy: integer('created_by').references(() => users.id),
 });
 
 // Currency Settings Table
@@ -197,4 +205,14 @@ export const activityLogs = sqliteTable('activity_logs', {
   details: text('details'),
   ipAddress: text('ip_address'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Settings Table
+export const settings = sqliteTable('settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  value: text('value').notNull(),
+  description: text('description'),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedBy: integer('updated_by').references(() => users.id),
 });

@@ -77,6 +77,19 @@ const authStore = useAuthStore();
 const drawer = ref(true);
 const isDark = computed(() => theme.global.current.value.dark);
 
+// حفظ واستعادة تفضيل الثيم من localStorage
+const savedTheme = localStorage.getItem('theme') || 'light';
+theme.change(savedTheme);
+
+// تطبيق color-scheme على HTML
+const applyColorScheme = (themeName) => {
+  console.log('Applying color scheme:', themeName);
+  document.documentElement.style.colorScheme = themeName === 'dark' ? 'dark' : 'light';
+};
+
+// تطبيق الثيم المحفوظ عند التحميل
+applyColorScheme(savedTheme);
+
 const menuItems = [
   { title: 'الرئيسية', icon: 'mdi-view-dashboard', to: '/', permission: null },
   { title: 'المبيعات', icon: 'mdi-cash-register', to: '/sales', permission: 'read:sales' },
@@ -92,7 +105,7 @@ const menuItems = [
     permission: 'read:permissions',
   },
   { title: 'التقارير', icon: 'mdi-chart-box', to: '/reports', permission: 'read:reports' },
-  { title: 'حول', icon: 'mdi-information', to: '/about', permission: null },
+  { title: 'الاعدادات', icon: 'mdi-cog', to: '/about', permission: null },
 ];
 
 // 🔹 فلترة القائمة حسب صلاحيات المستخدم
@@ -109,7 +122,10 @@ const currentPageTitle = computed(() => {
 });
 
 const toggleTheme = () => {
-  theme.global.name.value = isDark.value ? 'light' : 'dark';
+  const newTheme = isDark.value ? 'light' : 'dark';
+  theme.change(newTheme);
+  localStorage.setItem('theme', newTheme);
+  applyColorScheme(newTheme);
 };
 
 const handleLogout = () => {

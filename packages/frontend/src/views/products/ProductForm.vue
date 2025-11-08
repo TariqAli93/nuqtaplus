@@ -1,8 +1,15 @@
 <template>
   <div>
-    <h1 class="text-h4 font-weight-bold mb-6">
-      {{ isEdit ? 'تعديل منتج' : 'منتج جديد' }}
-    </h1>
+    <v-card class="mb-4">
+      <div class="flex justify-space-between items-center pa-3">
+        <div class="text-h6 font-semibold text-primary">
+          {{ isEdit ? 'تعديل منتج' : 'منتج جديد' }}
+        </div>
+        <v-btn color="primary" @click="router.back()">
+          <v-icon>mdi-arrow-left</v-icon>
+        </v-btn>
+      </div>
+    </v-card>
 
     <v-card>
       <v-card-text>
@@ -16,7 +23,12 @@
               ></v-text-field>
             </v-col>
             <v-col cols="12" md="6">
-              <v-text-field v-model="formData.sku" label="رمز المنتج"></v-text-field>
+              <v-text-field
+                v-model="formData.sku"
+                label="رمز المنتج"
+                :append-inner-icon="'mdi-refresh'"
+                @click:append-inner="regenerateSKU"
+              ></v-text-field>
             </v-col>
             <v-col cols="12" md="6">
               <v-select
@@ -103,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useProductStore } from '@/stores/product';
 import { useCategoryStore } from '@/stores/category';
@@ -142,6 +154,72 @@ const rules = {
   required: (v) => !!v || 'هذا الحقل مطلوب',
 };
 
+// دالة لتحويل النص العربي إلى SKU
+const generateSKU = (name) => {
+  if (!name) return '';
+
+  // خريطة تحويل الأحرف العربية إلى إنجليزية
+  const arabicToEnglish = {
+    ا: 'a',
+    أ: 'a',
+    إ: 'a',
+    آ: 'a',
+    ب: 'b',
+    ت: 't',
+    ث: 'th',
+    ج: 'j',
+    ح: 'h',
+    خ: 'kh',
+    د: 'd',
+    ذ: 'dh',
+    ر: 'r',
+    ز: 'z',
+    س: 's',
+    ش: 'sh',
+    ص: 's',
+    ض: 'd',
+    ط: 't',
+    ظ: 'z',
+    ع: 'a',
+    غ: 'gh',
+    ف: 'f',
+    ق: 'q',
+    ك: 'k',
+    ل: 'l',
+    م: 'm',
+    ن: 'n',
+    ه: 'h',
+    و: 'w',
+    ي: 'y',
+    ى: 'y',
+    ة: 'h',
+    ء: 'a',
+  };
+
+  let sku = name
+    .toLowerCase()
+    .trim()
+    // تحويل الأحرف العربية
+    .split('')
+    .map((char) => arabicToEnglish[char] || char)
+    .join('')
+    // إزالة المسافات والرموز وتحويلها إلى شرطات
+    .replace(/[^a-z0-9]/g, '-')
+    // إزالة الشرطات المتتالية
+    .replace(/-+/g, '-')
+    // إزالة الشرطات من البداية والنهاية
+    .replace(/^-|-$/g, '');
+
+  return sku.toUpperCase();
+};
+
+// دالة تجديد SKU يدوياً
+const regenerateSKU = () => {
+  if (formData.value.name) {
+    formData.value.sku = generateSKU(formData.value.name);
+  }
+};
+
 const handleSubmit = async () => {
   const { valid } = await form.value.validate();
   if (!valid) return;
@@ -165,6 +243,17 @@ const handleBarcodeScan = () => {
   const code = formData.value?.barcode?.trim();
   if (!code) return;
 };
+
+// مراقبة تغيير اسم المنتج وتوليد SKU تلقائياً
+watch(
+  () => formData.value.name,
+  (newName) => {
+    if (newName && !isEdit.value) {
+      // فقط للمنتجات الجديدة
+      formData.value.sku = generateSKU(newName);
+    }
+  }
+);
 
 onMounted(async () => {
   const response = await categoryStore.fetchCategories();

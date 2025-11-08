@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { roles, permissions, rolePermissions, activityLogs } from '../models/index.js';
 import { eq, inArray } from 'drizzle-orm';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
@@ -23,6 +23,8 @@ export class RoleService {
       resourceId: role.id,
       details: `Created role ${role.name}`,
     });
+
+    saveDatabase();
     return role;
   }
 
@@ -39,6 +41,8 @@ export class RoleService {
       resourceId: id,
       details: `Updated role ${id}`,
     });
+
+    saveDatabase();
     return this.getById(id);
   }
 
@@ -59,6 +63,8 @@ export class RoleService {
       resourceId: id,
       details: `Deleted role ${id}`,
     });
+
+    saveDatabase();
     return { success: true };
   }
 
@@ -78,6 +84,8 @@ export class RoleService {
       resourceId: roleId,
       details: `Assigned ${values.length} permissions`,
     });
+
+    saveDatabase();
     return { success: true };
   }
 

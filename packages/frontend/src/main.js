@@ -3,6 +3,7 @@ import { createPinia } from 'pinia';
 import vuetify from './plugins/vuetify';
 import router from './router';
 import fontLoader from './plugins/fontLoader';
+import loadingPlugin from './plugins/loading';
 import App from './App.vue';
 import '@/styles/main.scss';
 
@@ -16,5 +17,6 @@ app.use(pinia);
 app.use(router);
 app.use(vuetify);
 app.use(fontLoader); // تفعيل نظام تحميل الخطوط الذكي
+app.use(loadingPlugin); // تفعيل نظام التحميل المتقدم
 
 app.mount('#app');

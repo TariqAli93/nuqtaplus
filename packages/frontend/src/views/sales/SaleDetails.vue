@@ -1,9 +1,21 @@
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-4">
-      <v-btn prepend-icon="mdi-arrow-right" variant="text" @click="$router.back()">رجوع</v-btn>
-      <v-btn color="primary" prepend-icon="mdi-printer" @click="handlePrint">طباعة الفاتورة</v-btn>
-    </div>
+    <v-card class="mb-4">
+      <div class="flex justify-center items-center">
+        <div class="flex items-center pa-3">
+          <div class="text-h6 font-semibold text-primary">تفاصيل الفاتورة</div>
+        </div>
+
+        <v-spacer />
+
+        <v-btn color="primary" prepend-icon="mdi-printer" @click="handlePrint"
+          >طباعة الفاتورة</v-btn
+        >
+        <v-btn variant="text" @click="$router.back()">
+          <v-icon>mdi-arrow-left</v-icon>
+        </v-btn>
+      </div>
+    </v-card>
 
     <v-card v-if="sale" class="mb-4">
       <v-card-title class="d-flex justify-space-between align-center">
@@ -62,12 +74,95 @@
               <strong>الملخص المالي</strong>
             </div>
             <div class="text-body-2 mr-8">
+              <!-- عرض المجموع الأساسي -->
+              <p v-if="sale.paymentType === 'installment' && sale.interestAmount > 0" class="mb-1">
+                <strong>إجمالي المنتجات:</strong>
+                <span class="text-primary">{{
+                  formatCurrency(sale.total - (sale.interestAmount || 0), sale.currency)
+                }}</span>
+              </p>
+              <!-- معلومات الفائدة -->
+              <p v-if="sale.paymentType === 'installment' && sale.interestRate > 0" class="mb-1">
+                <strong>نسبة الفائدة:</strong>
+                <span class="text-warning font-weight-bold">{{ sale.interestRate }}%</span>
+              </p>
+              <p v-if="sale.paymentType === 'installment' && sale.interestAmount > 0" class="mb-1">
+                <strong>قيمة الفائدة:</strong>
+                <span class="text-warning font-weight-bold">{{
+                  formatCurrency(sale.interestAmount, sale.currency)
+                }}</span>
+              </p>
+              <!-- عدد الأقساط للمبيعات التقسيطية -->
+              <p v-if="sale.paymentType === 'installment' && hasInstallments" class="mb-1">
+                <strong>عدد الأقساط:</strong>
+                <span class="text-info">{{ sale.installments.length }} قسط</span>
+              </p>
+              <p v-if="sale.paymentType === 'installment' && hasInstallments" class="mb-1">
+                <strong>قيمة القسط:</strong>
+                <span class="text-info">{{
+                  formatCurrency(sale.total / sale.installments.length, sale.currency)
+                }}</span>
+              </p>
+              <!-- الإجمالي النهائي -->
+              <v-divider
+                v-if="sale.paymentType === 'installment' && sale.interestAmount > 0"
+                class="my-2"
+              ></v-divider>
               <p class="mb-0">
-                <strong>الإجمالي:</strong>
-                <span class="text-h6 text-primary">{{
+                <strong>الإجمالي النهائي:</strong>
+                <span class="text-h6 text-primary font-weight-bold">{{
                   formatCurrency(sale.total, sale.currency)
                 }}</span>
               </p>
+            </div>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- Interest Information Card for Installment Sales -->
+    <v-card
+      v-if="sale && sale.paymentType === 'installment' && sale.interestAmount > 0"
+      class="mb-4 border-warning"
+    >
+      <v-card-title class="bg-warning-lighten-4 text-warning-darken-2">
+        <v-icon class="ml-2">mdi-calculator</v-icon>
+        تفاصيل حساب الفائدة
+      </v-card-title>
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="3">
+            <div class="text-center">
+              <div class="text-caption text-grey">إجمالي المنتجات</div>
+              <div class="text-h6 text-primary">
+                {{ formatCurrency(sale.total - sale.interestAmount, sale.currency) }}
+              </div>
+            </div>
+          </v-col>
+          <v-col cols="12" md="1" class="d-flex align-center justify-center">
+            <v-icon color="warning">mdi-plus</v-icon>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="text-center">
+              <div class="text-caption text-grey">الفائدة ({{ sale.interestRate }}%)</div>
+              <div class="text-h6 text-warning">
+                {{ formatCurrency(sale.interestAmount, sale.currency) }}
+              </div>
+            </div>
+          </v-col>
+          <v-col cols="12" md="1" class="d-flex align-center justify-center">
+            <v-icon color="success">mdi-equal</v-icon>
+          </v-col>
+          <v-col cols="12" md="4">
+            <div class="text-center">
+              <div class="text-caption text-grey">الإجمالي النهائي</div>
+              <div class="text-h5 text-success font-weight-bold">
+                {{ formatCurrency(sale.total, sale.currency) }}
+              </div>
+              <div class="text-caption text-grey mt-1">
+                {{ sale.installments.length }} أقساط ×
+                {{ formatCurrency(sale.total / sale.installments.length, sale.currency) }}
+              </div>
             </div>
           </v-col>
         </v-row>
@@ -104,8 +199,34 @@
             </tr>
           </tbody>
           <tfoot>
+            <!-- عرض المجموع الفرعي للمنتجات -->
+            <tr v-if="sale.paymentType === 'installment' && sale.interestAmount > 0">
+              <td colspan="4" class="text-left"><strong>المجموع الفرعي:</strong></td>
+              <td class="text-center">
+                <strong class="text-primary">{{
+                  formatCurrency(sale.total - (sale.interestAmount || 0), sale.currency)
+                }}</strong>
+              </td>
+            </tr>
+            <!-- عرض الفائدة إذا كانت موجودة -->
+            <tr
+              v-if="sale.paymentType === 'installment' && sale.interestAmount > 0"
+              class="bg-warning-lighten-4"
+            >
+              <td colspan="4" class="text-left">
+                <strong>الفائدة ({{ sale.interestRate }}%):</strong>
+              </td>
+              <td class="text-center">
+                <strong class="text-warning">{{
+                  formatCurrency(sale.interestAmount, sale.currency)
+                }}</strong>
+              </td>
+            </tr>
+            <!-- المجموع النهائي -->
             <tr class="bg-primary-lighten-5">
-              <td colspan="4" class="text-left"><strong class="text-h6">الإجمالي:</strong></td>
+              <td colspan="4" class="text-left">
+                <strong class="text-h6">الإجمالي النهائي:</strong>
+              </td>
               <td class="text-center">
                 <strong class="text-h6 text-primary">{{
                   formatCurrency(sale.total, sale.currency)
@@ -123,6 +244,12 @@
         <div>
           <v-icon class="ml-2">mdi-calendar-clock</v-icon>
           جدول الأقساط
+          <span
+            v-if="sale.paymentType === 'installment' && sale.interestAmount > 0"
+            class="text-caption text-warning d-block"
+          >
+            * الأقساط تشمل فائدة بنسبة {{ sale.interestRate }}%
+          </span>
         </div>
         <v-chip :color="getInstallmentStatusColor()" size="small">
           {{ getInstallmentStatusText() }}
@@ -253,7 +380,7 @@
     </v-card>
 
     <div id="invoiceComponent" ref="invoiceComponent">
-      <sale-details-invoice v-if="sale" :sale="sale" />
+      <sale-details-invoice v-if="sale" :sale="saleForPrint" />
     </div>
   </div>
 </template>
@@ -298,10 +425,12 @@ const hasInstallments = computed(() => {
   return sale.value?.installments && sale.value.installments.length > 0;
 });
 
-const formatCurrency = (amount, currency) => {
-  const symbol = currency === 'USD' ? '$' : 'IQD';
-  return `${symbol} ${parseFloat(amount || 0).toLocaleString()}`;
-};
+const formatCurrency = (amount, currency) =>
+  new Intl.NumberFormat('ar-IQ', {
+    style: 'currency',
+    currency: currency || 'IQD',
+    maximumFractionDigits: (currency || 'IQD') === 'USD' ? 2 : 0,
+  }).format(amount || 0);
 
 const getStatusColor = (status) => {
   const colors = { completed: 'success', pending: 'warning', cancelled: 'error' };
@@ -403,6 +532,27 @@ const addPayment = async () => {
   }
 };
 
+// for printing purposes
+const saleForPrint = computed(() => {
+  if (!sale.value) return null;
+
+  const saleCopy = { ...sale.value };
+
+  // If paymentType is installment, adjust items to include interest
+  if (saleCopy.paymentType === 'installment' && saleCopy.interestRate > 0) {
+    saleCopy.items = saleCopy.items.map((item) => {
+      const interestAmount = item.subtotal * (saleCopy.interestRate / 100);
+      return {
+        ...item,
+        subtotal: item.subtotal + interestAmount,
+        unitPrice: item.unitPrice + interestAmount / item.quantity,
+      };
+    });
+  }
+
+  return saleCopy;
+});
+
 const { handlePrint } = useVueToPrint({
   content: invoiceComponent,
   documentTitle: () => {
@@ -417,6 +567,7 @@ onMounted(async () => {
   try {
     const response = await saleStore.fetchSale(route.params.id);
     sale.value = response.data;
+    console.log('تم جلب تفاصيل المبيع:', sale.value);
     if (sale.value) {
       paymentData.value.currency = sale.value.currency;
     }

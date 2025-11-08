@@ -3,7 +3,7 @@ export default {
   name: 'Codelims Modern Blueprint',
 
   theme: {
-    defaultTheme: 'light',
+    defaultTheme: 'dark',
     themes: {
       light: {
         dark: false,

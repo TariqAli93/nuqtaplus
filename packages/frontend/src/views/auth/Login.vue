@@ -131,10 +131,6 @@ const theme = useTheme();
 const isDark = computed(() => theme.global.current.value.dark);
 const vuetifyColors = computed(() => theme.current.value.colors);
 
-const toggleDark = () => {
-  theme.global.name.value = isDark.value ? 'light' : 'dark';
-};
-
 // ------------ Login logic ------------
 const loginForm = ref(null);
 const credentials = ref({ username: '', password: '' });

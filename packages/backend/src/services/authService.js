@@ -1,8 +1,9 @@
-import db from '../db.js';
+import db, { saveDatabase } from '../db.js';
 import { users, roles, activityLogs, rolePermissions, permissions } from '../models/index.js';
 import { hashPassword, comparePassword } from '../utils/helpers.js';
 import { AuthenticationError, NotFoundError, ConflictError } from '../utils/errors.js';
 import { eq } from 'drizzle-orm';
+import config from '../config.js';
 
 export class AuthService {
   async register(userData, fastify) {
@@ -39,6 +40,8 @@ export class AuthService {
     // Remove password from response
     const userWithoutPassword = { ...newUser };
     delete userWithoutPassword.password;
+
+    saveDatabase();
 
     return {
       user: userWithoutPassword,
@@ -89,6 +92,8 @@ export class AuthService {
       roleId: user.roleId,
     });
 
+    console.log('Generated JWT token:', token);
+
     // Remove password from response
     const userWithoutPassword = { ...user };
     delete userWithoutPassword.password;
@@ -106,6 +111,8 @@ export class AuthService {
       details: 'User logged in',
     });
 
+    saveDatabase();
+
     return {
       user: {
         ...userWithoutPassword,
@@ -122,7 +129,6 @@ export class AuthService {
         username: users.username,
         fullName: users.fullName,
         phone: users.phone,
-        mfaEnabled: users.mfaEnabled,
         isActive: users.isActive,
         createdAt: users.createdAt,
         role: roles.name,
@@ -178,6 +184,8 @@ export class AuthService {
     // Remove password from response
     const userWithoutPassword = { ...newUser };
     delete userWithoutPassword.password;
+
+    saveDatabase();
 
     return {
       user: userWithoutPassword,

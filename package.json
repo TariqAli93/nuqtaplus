@@ -5,13 +5,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend dev\" \"wait-on http://localhost:5173 && pnpm --filter @codelims/electron dev\"",
-    "build": "pnpm --filter backend build && pnpm --filter frontend build && pnpm --filter @codelims/electron build",
+    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend electron:dev\"",
+    "dev:safe": "node monitor-processes.js --kill && pnpm dev",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build:win",
+    "build:win": "pnpm build",
+    "build:mac": "pnpm build",
+    "build:linux": "pnpm build",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "seed": "node ./packages/backend/src/seed.js",
     "db:migrate": "pnpm --filter backend db:migrate",
-    "db:generate": "pnpm --filter backend db:generate"
+    "db:generate": "pnpm --filter backend db:generate",
+    "monitor": "node monitor-processes.js --check",
+    "kill-processes": "node monitor-processes.js --kill",
+    "clean-start": "pnpm kill-processes && pnpm dev"
   },
   "keywords": [
     "accounting",

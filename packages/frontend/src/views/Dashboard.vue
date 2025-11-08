@@ -131,7 +131,7 @@
           <div class="flex-1">
             <h3
               :class="[
-                'text-base font-semibold text-gray-900 dark:text-gray-100 transition-colors duration-300',
+                'text-base font-semibold transition-colors duration-300',
                 idx % 6 === 0 && 'group-hover:text-sky-600 dark:group-hover:text-sky-400',
                 idx % 6 === 1 && 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
                 idx % 6 === 2 && 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400',
@@ -236,16 +236,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watchEffect, onUnmounted } from 'vue';
 import { useSaleStore } from '@/stores/sale';
 import { useProductStore } from '@/stores/product';
 import { useCustomerStore } from '@/stores/customer';
 import { useAuthStore } from '../stores/auth';
+import { useLoading } from '@/composables/useLoading';
 
 const saleStore = useSaleStore();
 const productStore = useProductStore();
 const customerStore = useCustomerStore();
 const authStore = useAuthStore();
+const { useAsyncData } = useLoading();
 
 const loading = ref(false);
 const stats = ref({
@@ -309,45 +311,61 @@ const getStatusText = (status) => {
   return texts[status] || status;
 };
 
-onMounted(async () => {
-  loading.value = true;
-  try {
-    // Fetch sales stats completed || pending
-    const salesResponse = await saleStore.fetchSales();
+// استخدام نظام التحميل المتقدم للبيانات
+const dashboardData = useAsyncData(async () => {
+  // Fetch sales stats completed || pending
+  const salesResponse = await saleStore.fetchSales();
 
-    recentSales.value =
-      salesResponse.data.filter(
-        (sale) => sale.status === 'completed' || sale.status === 'pending'
-      ) || [];
+  const filteredSales =
+    salesResponse.data.filter((sale) => sale.status === 'completed' || sale.status === 'pending') ||
+    [];
 
-    countSales.value = recentSales.value.length;
+  // Fetch low stock products
+  const lowStockProducts = await productStore.fetchLowStock({ lowStock: true });
 
-    console.log('Recent Sales:', recentSales.value);
+  const products = await productStore.fetchProducts();
 
-    // Fetch low stock products
-    const lowStockProducts = await productStore.fetchLowStock({ lowStock: true });
+  // Fetch customers
+  const customers = await customerStore.fetchCustomers();
 
-    const products = await productStore.fetchProducts();
-
-    // Fetch customers
-    const customers = await customerStore.fetchCustomers();
-
-    stats.value = {
+  return {
+    recentSales: filteredSales,
+    stats: {
       totalSales: salesResponse.length || 0,
       totalCustomers: customers.data.length || 0,
       totalProducts: products.data.length || 0,
       lowStock: lowStockProducts?.length || 0,
-    };
-  } catch {
-    // Handle error silently or show notification
-  } finally {
-    loading.value = false;
-  }
+    },
+  };
+});
+
+// تحديث البيانات المحلية عند تحميل البيانات
+onMounted(() => {
+  // مراقبة تغيير البيانات
+  const unwatch = watchEffect(() => {
+    if (dashboardData.data.value) {
+      recentSales.value = dashboardData.data.value.recentSales;
+      stats.value = dashboardData.data.value.stats;
+      countSales.value = dashboardData.data.value.recentSales.length;
+    }
+    loading.value = dashboardData.isLoading.value;
+  });
+
+  // تنظيف المراقب عند إلغاء تركيب المكون
+  onUnmounted(() => {
+    unwatch();
+  });
 });
 </script>
 
 <style scoped>
 .opacity-50 {
   opacity: 0.5;
+}
+
+@media (prefers-color-scheme: light) {
+  .light\:text-gray-900 {
+    color: #1a202c;
+  }
 }
 </style>

@@ -19,6 +19,34 @@
           @update:model-value="handleFilter"
         ></v-select>
 
+        <!-- العميل -->
+        <v-autocomplete
+          v-model="filters.customer"
+          :items="customers"
+          item-title="name"
+          item-value="id"
+          label="العميل"
+          hide-details
+          density="comfortable"
+          clearable
+          @update:model-value="handleFilter"
+          :custom-filter="customFilter"
+        >
+          <template v-slot:item="{ props, item }">
+            <v-list-item v-bind="props">
+              <template v-slot:title>
+                {{ item.raw.name }}
+              </template>
+              <template v-slot:subtitle>
+                {{ item.raw.phone }}
+              </template>
+            </v-list-item>
+          </template>
+          <template v-slot:selection="{ item }">
+            {{ item.raw.name }} - {{ item.raw.phone }}
+          </template>
+        </v-autocomplete>
+
         <v-text-field
           v-model="filters.startDate"
           label="من تاريخ"
@@ -95,15 +123,20 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSaleStore } from '@/stores/sale';
+import { useCustomerStore } from '@/stores/customer';
 
 const router = useRouter();
 const saleStore = useSaleStore();
+const customerStore = useCustomerStore();
 
 const filters = ref({
   status: null,
   startDate: null,
   endDate: null,
+  customer: '',
 });
+
+const customers = ref([]);
 
 const statusOptions = [
   { title: 'مكتمل', value: 'completed' },
@@ -114,10 +147,12 @@ const statusOptions = [
 const headers = [
   { title: 'رقم الفاتورة', key: 'invoiceNumber' },
   { title: 'العميل', key: 'customer' },
+  { title: 'رقم الهاتف', key: 'customerPhone' },
   { title: 'المبلغ الإجمالي', key: 'total' },
   { title: 'نوع الدفع', key: 'paymentType' },
   { title: 'الحالة', key: 'status' },
   { title: 'التاريخ', key: 'createdAt' },
+  { title: 'بواسطة', key: 'createdBy', sortable: false },
   { title: 'الاجرائات', key: 'actions', sortable: false },
 ];
 
@@ -159,6 +194,7 @@ const getStatusText = (status) => {
 
 const handleFilter = () => {
   saleStore.fetchSales(filters.value);
+  console.log('Filters applied:', filters.value);
 };
 
 const viewSale = (event, { item }) => {
@@ -179,7 +215,18 @@ const restoreSale = async (id) => {
   }
 };
 
+// دالة البحث المخصصة: البحث بالاسم أو رقم الهاتف
+const customFilter = (itemText, queryText, item) => {
+  const query = queryText.toLowerCase();
+  const name = item.raw.name?.toLowerCase() || '';
+  const phone = item.raw.phone?.toLowerCase() || '';
+  return name.includes(query) || phone.includes(query);
+};
+
 onMounted(() => {
   saleStore.fetchSales();
+  customerStore.fetchCustomers().then(() => {
+    customers.value = customerStore.customers;
+  });
 });
 </script>

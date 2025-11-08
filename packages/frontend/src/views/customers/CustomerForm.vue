@@ -1,8 +1,15 @@
 <template>
   <div>
-    <h1 class="text-h4 font-weight-bold mb-6">
-      {{ isEdit ? 'تعديل عميل' : 'عميل جديد' }}
-    </h1>
+    <v-card class="mb-4">
+      <div class="flex justify-space-between items-center pa-3">
+        <div class="text-h6 font-semibold text-primary">
+          {{ isEdit ? 'تعديل عميل' : 'عميل جديد' }}
+        </div>
+        <v-btn color="primary" @click="router.back()">
+          <v-icon>mdi-arrow-left</v-icon>
+        </v-btn>
+      </div>
+    </v-card>
 
     <v-card>
       <v-card-text>
@@ -16,11 +23,7 @@
               ></v-text-field>
             </v-col>
             <v-col cols="12" md="6">
-              <v-text-field
-                v-model="formData.phone"
-                label="رقم الهاتف"
-                :rules="[rules.required]"
-              ></v-text-field>
+              <v-text-field v-model="formData.phone" label="رقم الهاتف"></v-text-field>
             </v-col>
             <v-col cols="12" md="4">
               <v-text-field v-model="formData.city" label="المدينة"></v-text-field>

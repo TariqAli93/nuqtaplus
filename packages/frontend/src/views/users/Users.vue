@@ -80,7 +80,7 @@
           <v-btn icon variant="text" color="primary" @click="openForm(item)">
             <v-icon>mdi-pencil</v-icon>
           </v-btn>
-          <v-btn icon variant="text" color="warning" @click="resetPw(item)">
+          <v-btn icon variant="text" color="warning" @click="openResetPwDialog(item)">
             <v-icon>mdi-lock-reset</v-icon>
           </v-btn>
           <v-btn icon variant="text" color="error" @click="remove(item)">
@@ -141,6 +141,47 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- تغير كلمة المرور🔹 -->
+    <v-dialog v-model="resetPwDialog" max-width="600">
+      <!-- محتوى حوار تغيير كلمة المرور -->
+      <v-card elevation="10" rounded="xl">
+        <v-card-title class="bg-secondary text-white"> تغيير كلمة المرور </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text>
+          <v-form @submit.prevent="resetPw" ref="resetPwRef" lazy-validation>
+            <v-text-field
+              v-model="resetPwInfo.newPassword"
+              label="كلمة المرور الجديدة"
+              type="password"
+              :rules="[rules.required, rules.minLength]"
+              variant="outlined"
+            />
+            <v-text-field
+              v-model="resetPwInfo.confirmPassword"
+              label="تأكيد كلمة المرور"
+              type="password"
+              :rules="[
+                rules.required,
+                rules.confirmPassword(resetPwInfo.newPassword),
+                rules.minLength,
+              ]"
+              variant="outlined"
+            />
+
+            <div class="flex justify-space-between align-center mt-3">
+              <v-btn
+                type="submit"
+                color="primary"
+                class="tracking-wide shadow-lg hover:shadow-xl transition-all duration-300"
+                >تغيير كلمة المرور</v-btn
+              >
+              <v-btn variant="text" @click="closeResetPwDialog">إلغاء</v-btn>
+            </div>
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -171,6 +212,16 @@ const roleOptions = ref([]);
 
 const showForm = ref(false);
 const formRef = ref(null);
+const resetPwDialog = ref(false);
+const resetPwRef = ref(null);
+
+const rules = {
+  required: (value) => !!value || 'هذا الحقل مطلوب.',
+  minLength: (value) => value.length >= 6 || 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.',
+  confirmPassword: (value) =>
+    value === resetPwInfo.confirmPassword || 'كلمتا المرور غير متطابقتين.',
+};
+
 const form = reactive({
   id: null,
   username: '',
@@ -179,6 +230,11 @@ const form = reactive({
   roleId: null,
   password: '',
   isActive: true,
+});
+const resetPwInfo = reactive({
+  newPassword: '',
+  confirmPassword: '',
+  userId: null,
 });
 
 function getRoleName(roleId) {
@@ -199,6 +255,18 @@ function openForm(item) {
       isActive: true,
     });
   showForm.value = true;
+}
+
+function openResetPwDialog(item) {
+  resetPwInfo.userId = item.id;
+  resetPwDialog.value = true;
+}
+
+function closeResetPwDialog() {
+  resetPwDialog.value = false;
+  resetPwInfo.newPassword = '';
+  resetPwInfo.confirmPassword = '';
+  resetPwInfo.userId = null;
 }
 
 async function save() {
@@ -227,9 +295,15 @@ async function remove(item) {
   await store.remove(item.id);
 }
 
-async function resetPw(item) {
-  const pw = prompt('أدخل كلمة مرور جديدة:');
-  if (pw) await store.resetPassword(item.id, pw);
+async function resetPw() {
+  const { valid } = await resetPwRef.value.validate();
+  if (!valid) return;
+  if (resetPwInfo.newPassword !== resetPwInfo.confirmPassword) {
+    alert('كلمتا المرور غير متطابقتين!');
+    return;
+  }
+  await store.resetPassword(resetPwInfo.userId, resetPwInfo.newPassword);
+  closeResetPwDialog();
 }
 
 onMounted(async () => {

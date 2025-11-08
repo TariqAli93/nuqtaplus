@@ -1,35 +1,64 @@
-import db from '../db.js';
-import { sales, saleItems, products, customers, payments, installments } from '../models/index.js';
+import db, { saveDatabase } from '../db.js';
+import {
+  sales,
+  saleItems,
+  products,
+  customers,
+  payments,
+  installments,
+  users,
+} from '../models/index.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { generateInvoiceNumber, calculateSaleTotals } from '../utils/helpers.js';
 import { eq, desc, and, or, gte, lte, count, sql, inArray } from 'drizzle-orm';
+import settingsService from './settingsService.js';
 
 export class SaleService {
   async create(saleData, userId) {
+    // Get currency settings
+    const currencySettings = await settingsService.getCurrencySettings();
+
     // Calculate totals
     const totals = calculateSaleTotals(saleData.items, saleData.discount || 0, saleData.tax || 0);
 
     // Generate invoice number
     const invoiceNumber = generateInvoiceNumber();
 
+    // Calculate interest for installment payments
+    let interestAmount = 0;
+    let finalTotal = totals.total;
+
+    if (saleData.paymentType === 'installment' && saleData.interestRate > 0) {
+      interestAmount = (totals.total * (saleData.interestRate || 0)) / 100;
+      finalTotal = totals.total + interestAmount;
+    }
+
     // Calculate remaining amount
     const paidAmount = saleData.paidAmount || 0;
-    const remainingAmount = totals.total - paidAmount;
+    const remainingAmount = finalTotal - paidAmount;
 
-    // Default exchange rate (1 for USD, you can adjust based on currency)
-    const exchangeRate = saleData.exchangeRate || (saleData.currency === 'USD' ? 1 : 1500);
+    // Use currency from settings if not provided, otherwise use the provided one
+    const currency = saleData.currency || currencySettings.defaultCurrency;
+
+    // Get exchange rate based on currency
+    const exchangeRate =
+      saleData.exchangeRate ||
+      (currency === 'USD' ? currencySettings.usdRate : currencySettings.iqdRate);
+
+    // Handle customer selection - use default customer if none specified
+    let customerId = saleData.customerId;
 
     // Create sale
     const [newSale] = await db
       .insert(sales)
       .values({
         invoiceNumber,
-        customerId: saleData.customerId,
+        customerId: customerId,
         subtotal: totals.subtotal,
         discount: totals.discount,
         tax: totals.tax,
-        total: totals.total,
-        currency: saleData.currency,
+        total: finalTotal, // Use final total with interest
+        currency: currency,
         exchangeRate,
         paymentType: saleData.paymentType,
         paidAmount,
@@ -37,6 +66,9 @@ export class SaleService {
         status: remainingAmount <= 0 ? 'completed' : 'pending',
         notes: saleData.notes,
         createdBy: userId,
+        // Store interest information
+        interestRate: saleData.interestRate || 0,
+        interestAmount: interestAmount,
       })
       .returning();
 
@@ -62,7 +94,7 @@ export class SaleService {
       await db.insert(saleItems).values({
         saleId: newSale.id,
         productId: item.productId,
-        productName: item.productName || product.name,
+        productName: product.name,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discount || 0,
@@ -83,7 +115,7 @@ export class SaleService {
     if (paidAmount > 0) {
       await db.insert(payments).values({
         saleId: newSale.id,
-        customerId: saleData.customerId,
+        customerId: customerId,
         amount: paidAmount,
         currency: saleData.currency,
         exchangeRate,
@@ -107,7 +139,7 @@ export class SaleService {
 
         await db.insert(installments).values({
           saleId: newSale.id,
-          customerId: saleData.customerId,
+          customerId: customerId,
           installmentNumber: i + 1,
           dueAmount: parseFloat(installmentAmount.toFixed(2)),
           paidAmount: 0,
@@ -120,15 +152,17 @@ export class SaleService {
     }
 
     // Update customer debt if applicable
-    if (saleData.customerId && remainingAmount > 0) {
+    if (customerId && remainingAmount > 0) {
       await db
         .update(customers)
         .set({
           totalDebt: customers.totalDebt + remainingAmount,
-          totalPurchases: customers.totalPurchases + totals.total,
+          totalPurchases: customers.totalPurchases + finalTotal,
         })
-        .where(eq(customers.id, saleData.customerId));
+        .where(eq(customers.id, customerId));
     }
+
+    saveDatabase();
 
     return await this.getById(newSale.id);
   }
@@ -149,9 +183,12 @@ export class SaleService {
         status: sales.status,
         createdAt: sales.createdAt,
         customer: customers.name,
+        customerPhone: customers.phone,
+        createdBy: users.username,
       })
       .from(sales)
-      .leftJoin(customers, eq(sales.customerId, customers.id));
+      .leftJoin(customers, eq(sales.customerId, customers.id))
+      .leftJoin(users, eq(sales.createdBy, users.id));
 
     const conditions = [];
 
@@ -165,6 +202,10 @@ export class SaleService {
 
     if (endDate) {
       conditions.push(lte(sales.createdAt, endDate));
+    }
+
+    if (filters.customer) {
+      conditions.push(eq(sales.customerId, filters.customer));
     }
 
     if (conditions.length > 0) {
@@ -203,6 +244,8 @@ export class SaleService {
         total: sales.total,
         currency: sales.currency,
         exchangeRate: sales.exchangeRate,
+        interestRate: sales.interestRate,
+        interestAmount: sales.interestAmount,
         paymentType: sales.paymentType,
         paidAmount: sales.paidAmount,
         remainingAmount: sales.remainingAmount,
@@ -322,6 +365,8 @@ export class SaleService {
       }
     }
 
+    saveDatabase();
+
     return await this.getById(saleId);
   }
 
@@ -389,6 +434,8 @@ export class SaleService {
       })
       .where(eq(sales.id, id))
       .returning();
+
+    saveDatabase();
 
     return updated;
   }
@@ -515,6 +562,34 @@ export class SaleService {
 
     await db.delete(payments).where(eq(payments.id, paymentId));
 
+    // Update sale amounts
+    const sale = await this.getById(saleId);
+    const newPaidAmount = sale.paidAmount - payment.amount;
+    const newRemainingAmount = sale.remainingAmount + payment.amount;
+    const newStatus = 'pending';
+
+    await db
+      .update(sales)
+      .set({
+        paidAmount: newPaidAmount,
+        remainingAmount: newRemainingAmount,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sales.id, saleId));
+
+    // Update customer debt
+    if (sale.customerId) {
+      await db
+        .update(customers)
+        .set({
+          totalDebt: customers.totalDebt + payment.amount,
+        })
+        .where(eq(customers.id, sale.customerId));
+    }
+
+    saveDatabase();
+
     return payment;
   }
 
@@ -537,6 +612,8 @@ export class SaleService {
 
     // Delete the sale itself
     await db.delete(sales).where(eq(sales.id, saleId));
+
+    saveDatabase();
 
     return sale;
   }
@@ -601,6 +678,8 @@ export class SaleService {
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(installments.saleId, saleId), eq(installments.status, 'cancelled')));
+
+    saveDatabase();
 
     return updated;
   }

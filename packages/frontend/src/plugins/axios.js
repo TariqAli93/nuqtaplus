@@ -1,10 +1,11 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 import { useNotificationStore } from '@/stores/notification';
+import { useLoadingStore } from '@/stores/loading';
 import router from '@/router';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: 'http://127.0.0.1:3050/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -14,6 +15,10 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // بدء تتبع الطلب في نظام التحميل
+    const loadingStore = useLoadingStore();
+    loadingStore.startRequest();
+
     const authStore = useAuthStore();
     const token = authStore.token;
 
@@ -24,6 +29,10 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    // في حالة خطأ في الطلب، إنهاء تتبع التحميل
+    const loadingStore = useLoadingStore();
+    loadingStore.endRequest();
+
     return Promise.reject(error);
   }
 );
@@ -31,9 +40,17 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    // إنهاء تتبع الطلب في حالة النجاح
+    const loadingStore = useLoadingStore();
+    loadingStore.endRequest();
+
     return response.data;
   },
   (error) => {
+    // إنهاء تتبع الطلب في حالة الخطأ
+    const loadingStore = useLoadingStore();
+    loadingStore.endRequest();
+
     const notificationStore = useNotificationStore();
 
     // Handle 401 Unauthorized

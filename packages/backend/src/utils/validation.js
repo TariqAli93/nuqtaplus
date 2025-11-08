@@ -49,7 +49,6 @@ export const categorySchema = z.object({
 // Sale schemas
 export const saleItemSchema = z.object({
   productId: z.number().int().positive(),
-  productName: z.string(),
   quantity: z.number().int().positive(),
   unitPrice: z.number().positive(),
   discount: z.number().nonnegative().optional(),
@@ -67,6 +66,8 @@ export const saleSchema = z.object({
   paidAmount: z.number().nonnegative().optional(),
   installmentCount: z.number().int().positive().optional(),
   notes: z.string().optional(),
+  interestRate: z.number().nonnegative().optional(),
+  interestAmount: z.number().nonnegative().optional(),
 });
 
 // Payment schemas
@@ -112,4 +113,9 @@ export const paginationSchema = z.object({
   search: z.string().optional(),
   sortBy: z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
+});
+
+export const settingsSchema = z.object({
+  key: z.string().min(1),
+  value: z.any(),
 });
