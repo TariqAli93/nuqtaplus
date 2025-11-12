@@ -23,6 +23,7 @@ import Roles from '@/views/roles/Roles.vue';
 import Permissions from '@/views/permissions/Permissions.vue';
 import Forbidden from '@/views/errors/Forbidden.vue'; // 👈 صفحة 403
 import Profile from '@/views/Profile.vue';
+import About from '@/views/About.vue';
 
 const routes = [
   {
@@ -114,6 +115,7 @@ const routes = [
       },
       { path: 'profile', name: 'Profile', component: Profile }, // 👈 صفحة الملف الشخصي
       { path: 'settings', name: 'Settings', component: Settings },
+      { path: 'about', name: 'About', component: About }, // 👈 صفحة حول البرنامج
       { path: 'forbidden', name: 'Forbidden', component: Forbidden }, // 👈 صفحة 403
     ],
   },

@@ -1,14 +1,11 @@
 <template>
   <v-app>
-    <v-navigation-drawer v-model="drawer" app permanent>
+    <v-navigation-drawer app v-model="drawer" permanent width="250">
       <v-list-item class="pa-4">
         <v-list-item-title class="text-h6 font-weight-bold primary--text">
           CodeLIMS
         </v-list-item-title>
-        <v-list-item-subtitle>نظام إدارة المبيعات</v-list-item-subtitle>
       </v-list-item>
-
-      <v-divider></v-divider>
 
       <v-list density="compact" nav>
         <v-list-item
@@ -63,6 +60,17 @@
         <router-view />
       </v-container>
     </v-main>
+
+    <!-- Footer -->
+    <v-footer app>
+      <v-row align="center" no-gutters>
+        <v-col cols="12" md="12" class="flex justify-between items-center">
+          <div class="text-body-2"><strong>CodeLIMS</strong> - نظام إدارة المبيعات</div>
+
+          <div class="text-body-2">© 2025 شركة كــــــــــودل للحلول البرمجية</div>
+        </v-col>
+      </v-row>
+    </v-footer>
   </v-app>
 </template>
 
@@ -108,6 +116,7 @@ const menuItems = [
   },
   { title: 'التقارير', icon: 'mdi-chart-box', to: '/reports', permission: 'read:reports' },
   { title: 'الاعدادات', icon: 'mdi-cog', to: '/settings', permission: 'read:settings' },
+  { title: 'حول البرنامج', icon: 'mdi-information', to: '/about', permission: null },
 ];
 
 // 🔹 فلترة القائمة حسب صلاحيات المستخدم

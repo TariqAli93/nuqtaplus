@@ -27,4 +27,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deactivateLicense: () => ipcRenderer.invoke('deactivate-license'),
 
   logToMain: (message) => ipcRenderer.invoke('logToMain', message),
+
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
 });

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
 import { promises as fs } from 'fs';
@@ -283,4 +283,15 @@ ipcMain.handle('backend:start', async () => {
   await backendManager.StartBackend();
   await new Promise((resolve) => setTimeout(resolve, 2000));
   logger.info('Backend server started successfully');
+});
+
+// --- فتح متصفح خارجي ---
+ipcMain.handle('shell:openExternal', async (_e, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error opening external URL:', error);
+    return { success: false, message: error.message };
+  }
 });
