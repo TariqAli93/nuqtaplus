@@ -81,7 +81,6 @@ class Logger {
             WARN: '\x1b[33m',
             ERROR: '\x1b[31m',
           }[level] || '';
-        console.log(`${color}${line}\x1b[0m`);
       }
     } catch (err) {
       console.error('Logger write error:', err);

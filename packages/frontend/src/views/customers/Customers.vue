@@ -106,6 +106,5 @@ const handleDelete = async () => {
 
 onMounted(() => {
   customerStore.fetchCustomers();
-  console.log('Customers view mounted, fetching customers...', customerStore.customers);
 });
 </script>

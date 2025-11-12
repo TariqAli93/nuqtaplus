@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تفعيل البرنامج</title>
+    <style>
+      :root {
+        --bg: #f4f5f7;
+        --fg: #2f2f2f;
+        --accent: #4a5fd0;
+        --border: #d0d0d5;
+        --shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        --radius: 10px;
+        --card: #ffffff;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1e1f24;
+          --fg: #e5e5e7;
+          --accent: #7e8fff;
+          --border: #2e2f36;
+          --card: #2a2b31;
+          --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      }
+
+      .window {
+        border-radius: var(--radius);
+        width: 420px;
+        max-width: 90%;
+        overflow: hidden;
+      }
+
+      .titlebar {
+        background: linear-gradient(to right, #e6e8f1, #dfe2ee);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        user-select: none;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .titlebar {
+          background: #24252b;
+          border-bottom-color: #35363f;
+        }
+      }
+
+      .titlebar .app-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        background: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 12px;
+        margin-inline-end: 8px;
+      }
+
+      .titlebar .title {
+        font-weight: 600;
+        flex-grow: 1;
+        font-size: 14px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 6px;
+      }
+
+      .ctrl-btn {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        opacity: 0.9;
+      }
+      .ctrl-close {
+        background: #ff5f57;
+      }
+      .ctrl-min {
+        background: #f4c430;
+      }
+      .ctrl-max {
+        background: #27c93f;
+      }
+
+      .window-body {
+        padding: 24px;
+      }
+
+      .logo {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .logo-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: var(--accent);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        font-size: 30px;
+        margin: 0 auto 12px;
+      }
+
+      h1 {
+        font-size: 20px;
+        text-align: center;
+        margin-bottom: 8px;
+      }
+
+      p.subtitle {
+        text-align: center;
+        color: #777;
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      input[type='text'] {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        text-align: center;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        outline: none;
+        background: #fafafa;
+        letter-spacing: 2px;
+        font-family: 'Courier New', monospace;
+        transition: border-color 0.2s;
+      }
+
+      input[type='text']:focus {
+        border-color: var(--accent);
+        background: #fff;
+      }
+
+      .buttons {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        justify-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: var(--accent);
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s ease;
+      }
+
+      button:hover {
+        background: #394abf;
+      }
+
+      button#cancelButton {
+        background: #ff5f57;
+      }
+
+      button#cancelButton:hover {
+        background: #e04843;
+      }
+
+      .message {
+        margin-top: 16px;
+        text-align: center;
+        padding: 10px;
+        border-radius: var(--radius);
+        font-size: 14px;
+        display: none;
+      }
+
+      .message.success {
+        background: #e6f4ea;
+        color: #2e7d32;
+      }
+
+      .message.error {
+        background: #fdecea;
+        color: #c62828;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="window">
+      <div class="window-body">
+        <div class="logo">
+          <div class="logo-icon">🔒</div>
+          <h1>تفعيل البرنامج</h1>
+          <p class="subtitle">أدخل كود التفعيل لبدء الاستخدام</p>
+        </div>
+
+        <form id="activationForm">
+          <label for="licenseKey">كود التفعيل</label>
+          <input
+            type="text"
+            id="licenseKey"
+            placeholder="XXXX-XXXX-XXXX-XXXX"
+            maxlength="19"
+            required
+          />
+          <div class="buttons">
+            <button type="submit">تفعيل</button>
+            <button type="button" id="cancelButton" onclick="window.close()">إلغاء</button>
+          </div>
+          <div class="message" id="message"></div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('activationForm');
+      const input = document.getElementById('licenseKey');
+      const message = document.getElementById('message');
+
+      input.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        let formatted = '';
+        for (let i = 0; i < value.length && i < 16; i++) {
+          if (i > 0 && i % 4 === 0) formatted += '-';
+          formatted += value[i];
+        }
+        e.target.value = formatted;
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        message.style.display = 'none';
+
+        const licenseKey = input.value.trim();
+        if (!licenseKey) {
+          showMessage('يرجى إدخال كود التفعيل', 'error');
+          return;
+        }
+
+        try {
+          // استخدام API التفعيل العادي
+          const result = await window.electronAPI.activateLicense(licenseKey);
+
+          if (result?.success) {
+            showMessage('تم التفعيل بنجاح! جاري فتح البرنامج...', 'success');
+          } else {
+            showMessage(result?.message || 'فشل التفعيل، تحقق من الكود.', 'error');
+          }
+        } catch (error) {
+          showMessage('حدث خطأ أثناء التحقق من التفعيل', 'error');
+        }
+      });
+
+      function showMessage(text, type) {
+        message.textContent = text;
+        message.className = `message ${type}`;
+        message.style.display = 'block';
+      }
+    </script>
+  </body>
+</html>

@@ -194,7 +194,6 @@ const getStatusText = (status) => {
 
 const handleFilter = () => {
   saleStore.fetchSales(filters.value);
-  console.log('Filters applied:', filters.value);
 };
 
 const viewSale = (event, { item }) => {

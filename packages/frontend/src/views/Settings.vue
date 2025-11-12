@@ -16,9 +16,15 @@
           <v-icon start>mdi-currency-usd</v-icon>
           إعدادات العملة
         </v-tab>
+
+        <v-tab value="license">
+          <v-icon start>mdi-key-variant</v-icon>
+          إدارة التفعيل
+        </v-tab>
+
         <v-tab value="backup">
-          <v-icon start>mdi-backup-restore</v-icon>
-          النسخ الاحتياطي
+          <v-icon start>mdi-database-backup</v-icon>
+          إدارة النسخ الاحتياطي
         </v-tab>
       </v-tabs>
     </v-card>
@@ -49,9 +55,13 @@
         <CurrencySettings />
       </v-window-item>
 
-      <!-- Backup Tab -->
-      <v-window-item value="backup">
-        <BackupSettings />
+      <!-- License Management Tab -->
+      <v-window-item value="license" class="pa-0">
+        <LicenseManager />
+      </v-window-item>
+
+      <v-window-item value="backup" class="pa-0">
+        <BackupManager />
       </v-window-item>
     </v-window>
 
@@ -65,10 +75,11 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useSettingsStore } from '../stores/settings';
-import CompanyInfoForm from '../components/settings/CompanyInfoForm.vue';
-import CurrencySettings from '../components/settings/CurrencySettings.vue';
-import BackupSettings from '../components/settings/BackupSettings.vue';
+import { useSettingsStore } from '@/stores/settings';
+import CompanyInfoForm from '@/components/settings/CompanyInfoForm.vue';
+import CurrencySettings from '@/components/settings/CurrencySettings.vue';
+import LicenseManager from '@/components/settings/LicenseManager.vue';
+import BackupManager from '@/components/settings/BackupManager.vue';
 
 // Stores
 const settingsStore = useSettingsStore();

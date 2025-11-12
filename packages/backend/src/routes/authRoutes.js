@@ -62,6 +62,24 @@ export default async function authRoutes(fastify) {
     },
   });
 
+  fastify.put('/change-password', {
+    onRequest: [fastify.authenticate],
+    handler: authController.changePassword,
+    schema: {
+      description: 'Change user password',
+      tags: ['auth'],
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['currentPassword', 'newPassword'],
+        properties: {
+          currentPassword: { type: 'string' },
+          newPassword: { type: 'string', minLength: 6 },
+        },
+      },
+    },
+  });
+
   fastify.post('/create-first-user', {
     handler: authController.createFirstUser,
     schema: {

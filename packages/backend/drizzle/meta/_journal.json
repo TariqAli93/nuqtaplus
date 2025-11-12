@@ -8,6 +8,13 @@
       "when": 1762397932840,
       "tag": "0000_large_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1762640269945,
+      "tag": "0001_cold_bucky",
+      "breakpoints": true
     }
   ]
 }

@@ -337,11 +337,9 @@ const createNewCustomer = async () => {
   }
 
   creatingCustomer.value = true;
-  console.log('Creating new customer:', newCustomerData.value);
 
   try {
     const response = await customerStore.createCustomer(newCustomerData.value);
-    console.log('Customer creation response:', response);
 
     // Check if response is valid
     if (!response || !response.data) {
@@ -349,7 +347,6 @@ const createNewCustomer = async () => {
     }
 
     const newCustomer = response.data;
-    console.log('New customer created:', newCustomer);
 
     // Add to search results and select
     searchResults.value.unshift(newCustomer);

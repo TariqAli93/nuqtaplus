@@ -1,23 +1,34 @@
 import db from '../db.js';
 import { currencySettings } from '../models/index.js';
 import { eq } from 'drizzle-orm';
+import { ValidationError, NotFoundError } from '../utils/errors.js';
 
 /**
  * Currency Conversion Service
- * خدمة تحويل العملات الاحترافية
+ * Handles all currency conversion operations
+ * Supports multiple currencies with dynamic exchange rates
  */
 export class CurrencyConversionService {
   /**
    * Get exchange rate between two currencies
-   * الحصول على سعر الصرف بين عملتين
+   * @param {string} fromCurrency - Source currency code (e.g., 'USD', 'IQD')
+   * @param {string} toCurrency - Target currency code
+   * @returns {Promise<number>} Exchange rate
+   * @throws {ValidationError} If currency codes are invalid
+   * @throws {NotFoundError} If currency is not found in database
    */
   async getExchangeRate(fromCurrency, toCurrency) {
-    // إذا كانت العملتان متماثلتين، لا داعي للتحويل
+    // Validate input
+    if (!fromCurrency || !toCurrency) {
+      throw new ValidationError('Both fromCurrency and toCurrency are required');
+    }
+
+    // Same currency, no conversion needed
     if (fromCurrency === toCurrency) {
       return 1;
     }
 
-    // الحصول على معلومات العملات من قاعدة البيانات
+    // Get currency data from database
     const [fromCurrencyData] = await db
       .select()
       .from(currencySettings)
@@ -30,40 +41,71 @@ export class CurrencyConversionService {
       .where(eq(currencySettings.currencyCode, toCurrency))
       .limit(1);
 
-    if (!fromCurrencyData || !toCurrencyData) {
-      throw new Error('Currency not found');
+    if (!fromCurrencyData) {
+      throw new NotFoundError(`Currency '${fromCurrency}'`);
     }
 
-    // حساب سعر الصرف
-    // إذا كانت العملة الأساسية USD، نستخدم المعادلة التالية:
-    // Rate = (1 / fromRate) * toRate
+    if (!toCurrencyData) {
+      throw new NotFoundError(`Currency '${toCurrency}'`);
+    }
+
+    // Check if currencies are active
+    if (!fromCurrencyData.isActive || !toCurrencyData.isActive) {
+      throw new ValidationError('One or both currencies are not active');
+    }
+
+    // Calculate exchange rate using cross-rate formula
+    // Rate = targetRate / sourceRate
     const rate = toCurrencyData.exchangeRate / fromCurrencyData.exchangeRate;
 
-    return rate;
+    return parseFloat(rate.toFixed(6));
   }
 
   /**
    * Convert amount from one currency to another
-   * تحويل مبلغ من عملة إلى أخرى
+   * @param {number} amount - Amount to convert
+   * @param {string} fromCurrency - Source currency
+   * @param {string} toCurrency - Target currency
+   * @returns {Promise<number>} Converted amount
+   * @throws {ValidationError} If amount is invalid
    */
   async convertAmount(amount, fromCurrency, toCurrency) {
+    if (typeof amount !== 'number' || amount < 0) {
+      throw new ValidationError('Amount must be a non-negative number');
+    }
+
     const rate = await this.getExchangeRate(fromCurrency, toCurrency);
     const convertedAmount = amount * rate;
+
     return parseFloat(convertedAmount.toFixed(2));
   }
 
   /**
-   * Convert multiple amounts at once
-   * تحويل عدة مبالغ دفعة واحدة
+   * Convert multiple amounts at once (batch conversion)
+   * @param {Array<number>} amounts - Array of amounts to convert
+   * @param {string} fromCurrency - Source currency
+   * @param {string} toCurrency - Target currency
+   * @returns {Promise<Array<number>>} Array of converted amounts
    */
   async convertMultipleAmounts(amounts, fromCurrency, toCurrency) {
+    if (!Array.isArray(amounts)) {
+      throw new ValidationError('Amounts must be an array');
+    }
+
     const rate = await this.getExchangeRate(fromCurrency, toCurrency);
-    return amounts.map((amount) => parseFloat((amount * rate).toFixed(2)));
+
+    return amounts.map((amount) => {
+      if (typeof amount !== 'number' || amount < 0) {
+        throw new ValidationError('All amounts must be non-negative numbers');
+      }
+      return parseFloat((amount * rate).toFixed(2));
+    });
   }
 
   /**
-   * Get all exchange rates for a base currency
-   * الحصول على جميع أسعار الصرف لعملة معينة
+   * Get all exchange rates for a specific base currency
+   * @param {string} baseCurrency - Base currency code
+   * @returns {Promise<Object>} Object with currency codes as keys and rates as values
    */
   async getAllRatesForCurrency(baseCurrency) {
     const currencies = await db.select().from(currencySettings).all();

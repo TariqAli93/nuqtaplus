@@ -14,9 +14,20 @@ import { eq, desc, and, or, gte, lte, count, sql, inArray } from 'drizzle-orm';
 import settingsService from './settingsService.js';
 
 export class SaleService {
+  /**
+   * Create a new sale with items, payments, and installments
+   * @param {Object} saleData - Sale data including items and payment info
+   * @param {number} userId - ID of user creating the sale
+   * @returns {Promise<Object>} Created sale with all details
+   */
   async create(saleData, userId) {
     // Get currency settings
     const currencySettings = await settingsService.getCurrencySettings();
+
+    // Validate items exist
+    if (!saleData.items || saleData.items.length === 0) {
+      throw new ValidationError('Sale must have at least one item');
+    }
 
     // Calculate totals
     const totals = calculateSaleTotals(saleData.items, saleData.discount || 0, saleData.tax || 0);
@@ -28,16 +39,19 @@ export class SaleService {
     let interestAmount = 0;
     let finalTotal = totals.total;
 
-    if (saleData.paymentType === 'installment' && saleData.interestRate > 0) {
-      interestAmount = (totals.total * (saleData.interestRate || 0)) / 100;
+    if (
+      (saleData.paymentType === 'installment' || saleData.paymentType === 'mixed') &&
+      saleData.interestRate > 0
+    ) {
+      interestAmount = (totals.total * saleData.interestRate) / 100;
       finalTotal = totals.total + interestAmount;
     }
 
     // Calculate remaining amount
-    const paidAmount = saleData.paidAmount || 0;
-    const remainingAmount = finalTotal - paidAmount;
+    const paidAmount = parseFloat(saleData.paidAmount) || 0;
+    const remainingAmount = Math.max(0, finalTotal - paidAmount);
 
-    // Use currency from settings if not provided, otherwise use the provided one
+    // Use currency from settings if not provided
     const currency = saleData.currency || currencySettings.defaultCurrency;
 
     // Get exchange rate based on currency
@@ -45,36 +59,40 @@ export class SaleService {
       saleData.exchangeRate ||
       (currency === 'USD' ? currencySettings.usdRate : currencySettings.iqdRate);
 
-    // Handle customer selection - use default customer if none specified
-    let customerId = saleData.customerId;
+    // Handle customer selection
+    const customerId = saleData.customerId || null;
 
-    // Create sale
+    // Validate customer if installment payment
+    if (saleData.paymentType === 'installment' && !customerId) {
+      throw new ValidationError('Customer is required for installment payments');
+    }
+
+    // Create sale record
     const [newSale] = await db
       .insert(sales)
       .values({
         invoiceNumber,
-        customerId: customerId,
+        customerId,
         subtotal: totals.subtotal,
         discount: totals.discount,
         tax: totals.tax,
-        total: finalTotal, // Use final total with interest
-        currency: currency,
+        total: finalTotal,
+        currency,
         exchangeRate,
         paymentType: saleData.paymentType,
         paidAmount,
         remainingAmount,
         status: remainingAmount <= 0 ? 'completed' : 'pending',
-        notes: saleData.notes,
+        notes: saleData.notes || null,
         createdBy: userId,
-        // Store interest information
-        interestRate: saleData.interestRate || 0,
-        interestAmount: interestAmount,
+        interestRate: parseFloat(saleData.interestRate) || 0,
+        interestAmount: parseFloat(interestAmount.toFixed(2)),
       })
       .returning();
 
-    // Create sale items and update stock
+    // Create sale items and update product stock
     for (const item of saleData.items) {
-      // Check if product has enough stock
+      // Get product details
       const [product] = await db
         .select()
         .from(products)
@@ -82,15 +100,20 @@ export class SaleService {
         .limit(1);
 
       if (!product) {
-        throw new NotFoundError(`Product with ID ${item.productId}`);
+        throw new NotFoundError(`Product with ID ${item.productId} not found`);
       }
 
+      // Validate stock availability
       if (product.stock < item.quantity) {
         throw new ValidationError(
           `Insufficient stock for product: ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`
         );
       }
 
+      // Calculate item subtotal
+      const itemSubtotal = item.quantity * item.unitPrice - (item.discount || 0);
+
+      // Create sale item
       await db.insert(saleItems).values({
         saleId: newSale.id,
         productId: item.productId,
@@ -98,10 +121,10 @@ export class SaleService {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discount || 0,
-        subtotal: item.quantity * item.unitPrice - (item.discount || 0),
+        subtotal: parseFloat(itemSubtotal.toFixed(2)),
       });
 
-      // Update product stock using correct SQL
+      // Update product stock
       await db
         .update(products)
         .set({
@@ -111,47 +134,54 @@ export class SaleService {
         .where(eq(products.id, item.productId));
     }
 
-    // Create initial payment if any
+    // Create initial payment if amount was paid
     if (paidAmount > 0) {
       await db.insert(payments).values({
         saleId: newSale.id,
-        customerId: customerId,
-        amount: paidAmount,
-        currency: saleData.currency,
+        customerId,
+        amount: parseFloat(paidAmount.toFixed(2)),
+        currency,
         exchangeRate,
         paymentMethod: saleData.paymentMethod || 'cash',
         createdBy: userId,
+        notes: 'Initial payment',
       });
     }
 
-    // Create installments if payment type is installment or mixed
+    // Create installment schedule if needed
     if (
       (saleData.paymentType === 'installment' || saleData.paymentType === 'mixed') &&
       remainingAmount > 0
     ) {
-      const installmentCount = saleData.installmentCount || 3;
+      const installmentCount = parseInt(saleData.installmentCount) || 3;
+
+      // Validate installment count
+      if (installmentCount < 1) {
+        throw new ValidationError('Installment count must be at least 1');
+      }
+
       const installmentAmount = remainingAmount / installmentCount;
-      const startDate = new Date();
+      const currentDate = new Date();
 
       for (let i = 0; i < installmentCount; i++) {
-        const dueDate = new Date(startDate);
+        const dueDate = new Date(currentDate);
         dueDate.setMonth(dueDate.getMonth() + i + 1);
 
         await db.insert(installments).values({
           saleId: newSale.id,
-          customerId: customerId,
+          customerId,
           installmentNumber: i + 1,
           dueAmount: parseFloat(installmentAmount.toFixed(2)),
           paidAmount: 0,
           remainingAmount: parseFloat(installmentAmount.toFixed(2)),
-          currency: saleData.currency,
+          currency,
           dueDate: dueDate.toISOString().split('T')[0],
           status: 'pending',
         });
       }
     }
 
-    // Update customer debt if applicable
+    // Update customer totals if customer is specified
     if (customerId && remainingAmount > 0) {
       await db
         .update(customers)
@@ -252,9 +282,11 @@ export class SaleService {
         status: sales.status,
         notes: sales.notes,
         createdAt: sales.createdAt,
+        createdBy: users.username,
       })
       .from(sales)
       .leftJoin(customers, eq(sales.customerId, customers.id))
+      .leftJoin(users, eq(sales.createdBy, users.id))
       .where(eq(sales.id, id))
       .limit(1);
 
@@ -266,12 +298,26 @@ export class SaleService {
     const items = await db.select().from(saleItems).where(eq(saleItems.saleId, id));
 
     // Get payments
-    const salePayments = await db.select().from(payments).where(eq(payments.saleId, id));
+    const salePayments = await db
+      .select({
+        ...payments,
+        createdBy: users.username,
+      })
+      .from(payments)
+      .leftJoin(users, eq(payments.createdBy, users.id))
+      .where(eq(payments.saleId, id));
 
     // Get installments
     const saleInstallments = await db
-      .select()
+      .select({
+        ...installments,
+        customerName: customers.name,
+        customerPhone: customers.phone,
+        createdBy: users.username,
+      })
       .from(installments)
+      .leftJoin(customers, eq(installments.customerId, customers.id))
+      .leftJoin(users, eq(installments.createdBy, users.id))
       .where(eq(installments.saleId, id));
 
     return {

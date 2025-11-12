@@ -39,6 +39,15 @@ export class AuthController {
     });
   }
 
+  async changePassword(request, reply) {
+    const { currentPassword, newPassword } = request.body;
+    await authService.changePassword(request.user.id, currentPassword, newPassword);
+    return reply.send({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  }
+
   async createFirstUser(request, reply) {
     const validatedData = userSchema.parse(request.body);
     const result = await authService.createFirstUser(validatedData, request.server);

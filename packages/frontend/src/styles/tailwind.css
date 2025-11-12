@@ -32,15 +32,6 @@
   [dir='ltr'] {
     direction: ltr;
   }
-
-  /* تحسين الأداء */
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
 }
 
 /* ============================================

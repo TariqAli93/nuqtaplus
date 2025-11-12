@@ -55,6 +55,15 @@ export class SettingsService {
   }
 
   /**
+   * Get setting by key (alias for backward compatibility)
+   * @param {string} key - Setting key
+   * @returns {Promise<Object>} Setting record
+   */
+  async getSetting(key) {
+    return await this.getByKey(key);
+  }
+
+  /**
    * Get setting value by key
    * @param {string} key - Setting key
    * @param {*} defaultValue - Default value if setting doesn't exist

@@ -131,15 +131,6 @@ function copyToClipboard(value, label) {
   alert(`تم نسخ ${label} إلى الحافظة`);
 }
 
-async function isFirstRun() {
-  try {
-    const response = await authStore.fetchInitialSetupInfo();
-    return response.isFirstRun;
-  } catch (error) {
-    console.error('خطأ في جلب معلومات الإعداد الأولي:', error);
-  }
-}
-
 async function checkInitialSetup() {
   try {
     const response = await authStore.fetchInitialSetupInfo();

@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useSettingsStore } from '../../stores/settings';
+import { useSettingsStore } from '@/stores/settings';
 
 // Stores
 const settingsStore = useSettingsStore();

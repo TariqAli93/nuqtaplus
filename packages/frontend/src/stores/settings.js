@@ -279,7 +279,6 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const response = await api.get('/settings/currency');
 
-      console.log('Currency settings fetch response:', response);
       if (response.success) {
         return response.data;
       }
@@ -298,8 +297,6 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const response = await api.put('/settings/currency', currencyData);
       const notificationStore = useNotificationStore();
-
-      console.log('Currency settings save response:', response);
 
       if (response.success) {
         notificationStore.success('تم حفظ إعدادات العملة بنجاح');

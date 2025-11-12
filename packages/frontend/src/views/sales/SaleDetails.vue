@@ -36,9 +36,9 @@
               <strong>معلومات العميل</strong>
             </div>
             <div class="text-body-2 mr-8">
-              <p class="mb-1"><strong>الاسم:</strong> {{ sale.customerName || 'زبون نقدي' }}</p>
+              <p class="mb-1"><strong>الاسم: </strong> {{ sale.customerName || 'زبون نقدي' }}</p>
               <p v-if="sale.customer && sale.customer.phone" class="mb-1">
-                <strong>الهاتف:</strong> {{ sale.customer.phone }}
+                <strong>الهاتف: </strong> {{ sale.customer.phone }}
               </p>
             </div>
           </v-col>
@@ -50,17 +50,17 @@
             </div>
             <div class="text-body-2 mr-8">
               <p class="mb-1">
-                <strong>نوع الدفع:</strong> {{ getPaymentTypeText(sale.paymentType) }}
+                <strong>نوع الدفع: </strong> {{ getPaymentTypeText(sale.paymentType) }}
               </p>
               <p class="mb-1"><strong>العملة:</strong> {{ sale.currency }}</p>
               <p class="mb-1">
-                <strong>المدفوع:</strong>
+                <strong>المدفوع: </strong>
                 <span class="text-success">{{
                   formatCurrency(sale.paidAmount, sale.currency)
                 }}</span>
               </p>
               <p class="mb-0">
-                <strong>المتبقي:</strong>
+                <strong>المتبقي: </strong>
                 <span :class="sale.remainingAmount > 0 ? 'text-error' : 'text-success'">
                   {{ formatCurrency(sale.remainingAmount, sale.currency) }}
                 </span>
@@ -76,29 +76,29 @@
             <div class="text-body-2 mr-8">
               <!-- عرض المجموع الأساسي -->
               <p v-if="sale.paymentType === 'installment' && sale.interestAmount > 0" class="mb-1">
-                <strong>إجمالي المنتجات:</strong>
+                <strong>إجمالي المنتجات: </strong>
                 <span class="text-primary">{{
                   formatCurrency(sale.total - (sale.interestAmount || 0), sale.currency)
                 }}</span>
               </p>
               <!-- معلومات الفائدة -->
               <p v-if="sale.paymentType === 'installment' && sale.interestRate > 0" class="mb-1">
-                <strong>نسبة الفائدة:</strong>
+                <strong>نسبة الفائدة: </strong>
                 <span class="text-warning font-weight-bold">{{ sale.interestRate }}%</span>
               </p>
               <p v-if="sale.paymentType === 'installment' && sale.interestAmount > 0" class="mb-1">
-                <strong>قيمة الفائدة:</strong>
+                <strong>قيمة الفائدة: </strong>
                 <span class="text-warning font-weight-bold">{{
                   formatCurrency(sale.interestAmount, sale.currency)
                 }}</span>
               </p>
               <!-- عدد الأقساط للمبيعات التقسيطية -->
               <p v-if="sale.paymentType === 'installment' && hasInstallments" class="mb-1">
-                <strong>عدد الأقساط:</strong>
+                <strong>عدد الأقساط: </strong>
                 <span class="text-info">{{ sale.installments.length }} قسط</span>
               </p>
               <p v-if="sale.paymentType === 'installment' && hasInstallments" class="mb-1">
-                <strong>قيمة القسط:</strong>
+                <strong>قيمة القسط: </strong>
                 <span class="text-info">{{
                   formatCurrency(sale.total / sale.installments.length, sale.currency)
                 }}</span>
@@ -109,7 +109,7 @@
                 class="my-2"
               ></v-divider>
               <p class="mb-0">
-                <strong>الإجمالي النهائي:</strong>
+                <strong>الإجمالي النهائي: </strong>
                 <span class="text-h6 text-primary font-weight-bold">{{
                   formatCurrency(sale.total, sale.currency)
                 }}</span>
@@ -315,6 +315,8 @@
               <th class="text-center">المبلغ</th>
               <th class="text-center">طريقة الدفع</th>
               <th class="text-center">التاريخ</th>
+              <th class="text-center">العملة</th>
+              <th class="text-center">بواسطة</th>
               <th class="text-right">ملاحظات</th>
             </tr>
           </thead>
@@ -326,6 +328,8 @@
               </td>
               <td class="text-center">{{ getPaymentMethodText(payment.paymentMethod) }}</td>
               <td class="text-center">{{ toYmd(payment.createdAt) }}</td>
+              <td class="text-center">{{ payment.currency }}</td>
+              <td class="text-center">{{ payment.createdBy || '-' }}</td>
               <td>{{ payment.notes || '-' }}</td>
             </tr>
           </tbody>
@@ -426,7 +430,7 @@ const hasInstallments = computed(() => {
 });
 
 const formatCurrency = (amount, currency) =>
-  new Intl.NumberFormat('ar-IQ', {
+  new Intl.NumberFormat('ar', {
     style: 'currency',
     currency: currency || 'IQD',
     maximumFractionDigits: (currency || 'IQD') === 'USD' ? 2 : 0,
@@ -567,7 +571,6 @@ onMounted(async () => {
   try {
     const response = await saleStore.fetchSale(route.params.id);
     sale.value = response.data;
-    console.log('تم جلب تفاصيل المبيع:', sale.value);
     if (sale.value) {
       paymentData.value.currency = sale.value.currency;
     }

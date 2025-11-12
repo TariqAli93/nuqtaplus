@@ -2,6 +2,7 @@ import settingsService from '../services/settingsService.js';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'fs/promises';
+import { resolveFromEnv } from '../plugins/ensureDatabase.js';
 
 const createSettingSchema = z.object({
   key: z.string().min(1).max(255),
@@ -427,6 +428,290 @@ export class SettingsController {
       return reply.status(500).send({
         success: false,
         message: 'Failed to save currency settings',
+        error: error.message,
+      });
+    }
+  }
+
+  async createBackup(request, reply) {
+    try {
+      // find database path
+      const defaultFile = path.resolve(process.cwd(), 'data', 'codelims.db');
+      const envSource = process.env.DATABASE_URL || process.env.DB_FILE || process.env.SQLITE_FILE;
+      const resolved = resolveFromEnv(envSource) || defaultFile;
+
+      // ensure database file exists
+      if (resolved === ':memory:') {
+        request.log.error('Cannot backup in-memory database');
+        throw new Error('Cannot backup in-memory database');
+      }
+
+      const dbFile = resolved;
+      const dir = path.dirname(dbFile);
+      if (!fs.stat(dir)) {
+        request.log.error('Database directory does not exist');
+        throw new Error('Database directory does not exist');
+      }
+      if (!fs.stat(dbFile)) {
+        request.log.error('Database file does not exist');
+        throw new Error('Database file does not exist');
+      }
+
+      // read database file and create buffer to save as backup
+      const data = await fs.readFile(dbFile);
+      const backupId = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupFilename = `backup-${backupId}.db`;
+      const backupDir = path.join(process.cwd(), 'data', 'backups');
+      await fs.mkdir(backupDir, { recursive: true });
+      await fs.writeFile(path.join(backupDir, backupFilename), data);
+    } catch (error) {
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to create backup',
+        error: error.message,
+      });
+    }
+  }
+
+  async listBackups(request, reply) {
+    /** دالة مساعدة لتحويل الحجم إلى صيغة مقروءة */
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+    try {
+      const backupDir = path.join(process.cwd(), 'data', 'backups');
+
+      // تحقق أن المجلد موجود
+      try {
+        await fs.access(backupDir);
+      } catch {
+        await fs.mkdir(backupDir, { recursive: true });
+      }
+
+      const files = await fs.readdir(backupDir);
+
+      // فقط الملفات التي تبدأ بـ backup- وتنتهي بـ .db
+      const backupFiles = files.filter(
+        (file) => file.startsWith('backup-') && file.endsWith('.db')
+      );
+
+      const backups = await Promise.all(
+        backupFiles.map(async (file) => {
+          const filePath = path.join(backupDir, file);
+          const stats = await fs.stat(filePath);
+
+          return {
+            id: file.replace('backup-', '').replace('.db', ''),
+            filename: file,
+            sizeBytes: stats.size,
+            sizeReadable: formatBytes(stats.size),
+            createdAt: stats.birthtime, // تاريخ الإنشاء الحقيقي
+            modifiedAt: stats.mtime, // آخر تعديل
+          };
+        })
+      );
+
+      // الترتيب من الأحدث إلى الأقدم
+      backups.sort((a, b) => b.createdAt - a.createdAt);
+
+      return reply.send({
+        success: true,
+        data: backups,
+      });
+    } catch (error) {
+      return reply.status(500).send({
+        success: false,
+        message: error?.message || 'Failed to list backups',
+        error: error.message,
+      });
+    }
+  }
+
+  async deleteBackup(request, reply) {
+    try {
+      const { id } = request.params;
+      const backupFilename = id;
+      const backupDir = path.join(process.cwd(), 'data', 'backups');
+      const backupPath = path.join(backupDir, backupFilename);
+      await fs.unlink(backupPath);
+
+      return reply.send({
+        success: true,
+        message: 'Backup deleted successfully',
+      });
+    } catch (error) {
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to delete backup',
+        error: error,
+      });
+    }
+  }
+
+  async restoreBackup(request, reply) {
+    const T = Date.now();
+    try {
+      // 1) حدد مسار القاعدة
+      const defaultFile = path.resolve(process.cwd(), 'data', 'codelims.db');
+      const envSource = process.env.DATABASE_URL || process.env.DB_FILE || process.env.SQLITE_FILE;
+      const resolved = typeof resolveFromEnv === 'function' ? resolveFromEnv(envSource) : envSource;
+      const dbFile = resolved || defaultFile;
+
+      if (!dbFile || dbFile === ':memory:') {
+        return reply
+          .status(400)
+          .send({ success: false, message: 'Cannot restore in-memory database' });
+      }
+
+      // تأكد أن مجلد القاعدة موجود
+      const dbDir = path.dirname(dbFile);
+      try {
+        await fs.access(dbDir);
+      } catch {
+        await fs.mkdir(dbDir, { recursive: true });
+      }
+
+      // 2) حدد ملف النسخة
+      const { id } = request.params;
+      const backupDir = path.join(process.cwd(), 'data', 'backups');
+      const candidates = [
+        path.join(backupDir, id),
+        path.join(backupDir, `${id}.db`),
+        path.join(backupDir, `backup-${id}`),
+        path.join(backupDir, `backup-${id}.db`),
+      ];
+      let backupPath = null;
+      for (const p of candidates) {
+        try {
+          await fs.access(p);
+          backupPath = p;
+          break;
+        } catch {}
+      }
+      if (!backupPath) {
+        return reply.status(404).send({ success: false, message: 'Backup file not found' });
+      }
+
+      // مهلة قصيرة لتحرير القفل في بعض الأنظمة
+      await new Promise((r) => setTimeout(r, 300));
+
+      // 4) أنشئ ملفًا جديدًا من النسخة داخل نفس المجلد (لضمان ذرّية rename)
+      const newPath = `${dbFile}.new-${T}.db`;
+      await fs.copyFile(backupPath, newPath);
+
+      // 5) لو هناك قاعدة قديمة، أعد تسميتها إلى .old للاحتفاظ بها مؤقتًا
+      const hadOld = await fs
+        .access(dbFile)
+        .then(() => true)
+        .catch(() => false);
+      const oldPath = `${dbFile}.old-${T}.db`;
+      if (hadOld) {
+        // على ويندوز: تأكد من عدم وجود عمليات مفتوحة على الملف
+        await fs.rename(dbFile, oldPath);
+      }
+
+      // 6) بدل الأسماء ذرّيًا: new → dbFile
+      await fs.rename(newPath, dbFile);
+
+      // 7) نظّف القديمة بعد نجاح الاستبدال
+      if (hadOld) {
+        try {
+          await fs.unlink(oldPath);
+        } catch {} // تجاهل لو قُفل مؤقتًا
+      }
+
+      return reply.send({
+        success: true,
+        message: '✅ Backup restored successfully',
+        source: path.basename(backupPath),
+        target: dbFile,
+      });
+    } catch (error) {
+      request.log?.error?.(error);
+
+      // محاولة تراجع: إن بقي ملف .new ولم يتم الاستبدال، امسحه
+      try {
+        const newGlob = `${path.resolve(process.cwd(), 'data', 'codelims.db')}.new-${T}.db`;
+        await fs.unlink(newGlob);
+      } catch {}
+
+      // إن كان هناك .old ولم نكمل الاستبدال، حاول إرجاعه إلى اسم القاعدة
+      try {
+        const oldGlob = `${path.resolve(process.cwd(), 'data', 'codelims.db')}.old-${T}.db`;
+        const dbFile = path.resolve(process.cwd(), 'data', 'codelims.db');
+        const existsOld = await fs
+          .access(oldGlob)
+          .then(() => true)
+          .catch(() => false);
+        if (existsOld) {
+          // إن كان dbFile غير موجود (فشلنا بإنشائه) نرجعه فورًا
+          const dbExists = await fs
+            .access(dbFile)
+            .then(() => true)
+            .catch(() => false);
+          if (!dbExists) await fs.rename(oldGlob, dbFile);
+        }
+      } catch {}
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to restore backup',
+        error: error?.message || String(error),
+      });
+    }
+  }
+
+  async downloadBackup(request, reply) {
+    try {
+      const { filename } = request.params;
+      // find database path
+      const defaultFile = path.resolve(process.cwd(), 'data', 'backups', filename);
+      const envSource = process.env.DATABASE_URL || process.env.DB_FILE || process.env.SQLITE_FILE;
+      const resolved = resolveFromEnv(envSource) || defaultFile;
+
+      // ensure database file exists
+      if (resolved === ':memory:') {
+        request.log.error('Cannot backup in-memory database');
+        throw new Error('Cannot backup in-memory database');
+      }
+
+      const dbFile = resolved;
+      const dir = path.dirname(dbFile);
+      if (!fs.stat(dir)) {
+        request.log.error('Database directory does not exist');
+        throw new Error('Database directory does not exist');
+      }
+      if (!fs.stat(dbFile)) {
+        request.log.error('Database file does not exist');
+        throw new Error('Database file does not exist');
+      }
+
+      // تحقق أن الملف موجود
+      try {
+        await fs.access(dbFile);
+      } catch {
+        return reply.status(404).send({
+          success: false,
+          message: 'Backup file not found.',
+        });
+      }
+
+      // إعداد الهيدر الصحيح للتحميل
+      reply.header('Content-Type', 'application/octet-stream');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+
+      const fileStream = await fs.readFile(dbFile);
+      return reply.send(fileStream);
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to download backup',
         error: error.message,
       });
     }

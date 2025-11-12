@@ -17,11 +17,12 @@ import Sales from '@/views/sales/Sales.vue';
 import NewSale from '@/views/sales/NewSale.vue';
 import SaleDetails from '@/views/sales/SaleDetails.vue';
 import Reports from '@/views/Reports.vue';
-import About from '@/views/About.vue';
+import Settings from '@/views/Settings.vue';
 import Users from '@/views/users/Users.vue';
 import Roles from '@/views/roles/Roles.vue';
 import Permissions from '@/views/permissions/Permissions.vue';
 import Forbidden from '@/views/errors/Forbidden.vue'; // 👈 صفحة 403
+import Profile from '@/views/Profile.vue';
 
 const routes = [
   {
@@ -111,7 +112,8 @@ const routes = [
         component: Permissions,
         meta: { permission: 'read:permissions' },
       },
-      { path: 'about', name: 'About', component: About },
+      { path: 'profile', name: 'Profile', component: Profile }, // 👈 صفحة الملف الشخصي
+      { path: 'settings', name: 'Settings', component: Settings },
       { path: 'forbidden', name: 'Forbidden', component: Forbidden }, // 👈 صفحة 403
     ],
   },

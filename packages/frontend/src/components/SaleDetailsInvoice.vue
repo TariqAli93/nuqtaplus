@@ -1,41 +1,33 @@
 <template>
   <div class="print-container">
     <!-- ===== HEADER ===== -->
-    <v-card variant="outlined" class="invoice-header mb-4">
-      <v-card-text>
-        <v-row>
-          <v-col cols="12" md="6">
-            <h4 class="text-primary mb-2">فاتورة بيع</h4>
-            <p class="mb-1">
-              رقم الفاتورة: <strong>{{ props.sale.invoiceNumber }}</strong>
-            </p>
-            <p class="mb-2">التاريخ: {{ toYmd(props.sale.createdAt) }}</p>
+    <header class="invoice-header">
+      <div class="header-left">
+        <h4 class="text-primary mb-2">فاتورة بيع</h4>
+        <p class="mb-1">
+          رقم الفاتورة: <strong>{{ props.sale.invoiceNumber }}</strong>
+        </p>
+        <p class="mb-2">التاريخ: {{ toYmd(props.sale.createdAt) }}</p>
 
-            <v-chip
-              :color="
-                props.sale.status === 'completed'
-                  ? 'success'
-                  : props.sale.status === 'pending'
-                    ? 'warning'
-                    : 'error'
-              "
-              variant="flat"
-              size="small"
-            >
-              {{ getStatusText(props.sale.status) }}
-            </v-chip>
-          </v-col>
+        <span
+          class="status-chip"
+          :class="{
+            completed: props.sale.status === 'completed',
+            pending: props.sale.status === 'pending',
+            cancelled: props.sale.status === 'cancelled',
+          }"
+        >
+          {{ getStatusText(props.sale.status) }}
+        </span>
+      </div>
 
-          <v-col cols="12" md="6" class="text-start">
-            <h4 class="mb-2 text-primary">{{ company?.name }}</h4>
-            <p class="mb-1">
-              العنوان: {{ company?.city }}, {{ company?.area }}, {{ company?.street }}
-            </p>
-            <p class="mb-1">الهاتف: {{ company?.phone }}</p>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
+      <div class="header-right">
+        <h4 class="mb-2 text-primary">{{ company?.name }}</h4>
+        <p class="mb-1">العنوان: {{ company?.city }}, {{ company?.area }}, {{ company?.street }}</p>
+        <p class="mb-1">الهاتف: {{ company?.phone }}</p>
+        <p>&nbsp;</p>
+      </div>
+    </header>
 
     <hr class="divider" />
 
@@ -64,10 +56,10 @@
           </span>
         </p>
       </div>
-      <div>
+      <!-- <div>
         <h5>الإجمالي</h5>
         <p class="total">{{ formatCurrency(props.sale.total) }}</p>
-      </div>
+      </div> -->
     </section>
 
     <hr class="divider" />
@@ -138,6 +130,7 @@
             <th>المبلغ</th>
             <th>طريقة الدفع</th>
             <th>التاريخ</th>
+            <th>بواسطة</th>
             <th>ملاحظات</th>
           </tr>
         </thead>
@@ -147,6 +140,7 @@
             <td class="success">{{ formatCurrency(p.amount) }}</td>
             <td>{{ getPaymentMethodText(p.paymentMethod) }}</td>
             <td>{{ toYmd(p.createdAt) }}</td>
+            <td>{{ p.createdBy || 'غير معروف' }}</td>
             <td>{{ p.notes || '-' }}</td>
           </tr>
         </tbody>
@@ -155,14 +149,14 @@
 
     <!-- ===== FOOTER ===== -->
     <footer class="invoice-footer">
-      <p>تم إنشاء هذه الفاتورة إلكترونيًا بواسطة النظام</p>
+      <p>تم إنشاء هذه الفاتورة إلكترونيًا بواسطة {{ props.sale.createdBy || 'غير معروف' }}</p>
     </footer>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { useSettingsStore } from '../stores/settings';
+import { useSettingsStore } from '@/stores/settings';
 
 const props = defineProps({
   sale: {
@@ -189,7 +183,7 @@ const items = props.sale.items.reduce((acc, item) => {
 // Format currency dynamically based on sale currency
 const formatCurrency = (val) => {
   const currency = props.sale.currency || 'IQD';
-  return new Intl.NumberFormat('ar-IQ', {
+  return new Intl.NumberFormat('ar', {
     style: 'currency',
     currency: currency,
     maximumFractionDigits: currency === 'USD' ? 2 : 0,
@@ -216,7 +210,6 @@ const getInstallmentStatusLabel = (i) =>
 onMounted(async () => {
   await settingsStore.fetchAllSettings();
   company.value = settingsStore.settings.company;
-  console.log('Settings Store:', settingsStore.settings.company);
 });
 </script>
 
@@ -225,10 +218,11 @@ onMounted(async () => {
   direction: rtl;
   font-family: 'Cairo', sans-serif;
   color: #222;
-  padding: 32px;
   background: #fff;
-  max-width: 900px;
   margin: 0 auto;
+  padding: 24px;
+  width: 210mm;
+  min-height: 297mm;
 }
 .invoice-header {
   display: flex;
@@ -305,14 +299,6 @@ onMounted(async () => {
 @media print {
   body {
     background: #fff !important;
-  }
-  .print-container {
-    box-shadow: none !important;
-    margin: 0;
-    padding: 16mm;
-  }
-  .no-print {
-    display: none !important;
   }
 }
 </style>

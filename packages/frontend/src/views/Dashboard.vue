@@ -75,12 +75,13 @@
         v-for="(action, idx) in quickActions"
         :key="action.title"
         :to="action.to"
+        color="sureface"
         :disabled="authStore.hasPermission(action.permission) === false"
-        class="group relative block rounded-2xl border border-gray-200 p-5 shadow-sm translate transition-all hover:scale-102 hover:shadow-2xl dark:border-gray-700 dark:bg-gray-800 overflow-hidden"
+        class="group relative block rounded-2xl border border-gray-200 p-5 translate transition-all hover:scale-102 hover:shadow-2xl dark:border-gray-700 overflow-hidden"
       >
         <!-- Animated background gradient -->
         <div
-          class="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-pink-500/0 opacity-0 transition-opacity duration-500 group-hover:opacity-10"
+          class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-10"
         ></div>
 
         <!-- Animated glow effect -->
@@ -240,7 +241,7 @@ import { ref, onMounted, watchEffect, onUnmounted } from 'vue';
 import { useSaleStore } from '@/stores/sale';
 import { useProductStore } from '@/stores/product';
 import { useCustomerStore } from '@/stores/customer';
-import { useAuthStore } from '../stores/auth';
+import { useAuthStore } from '@/stores/auth';
 import { useLoading } from '@/composables/useLoading';
 
 const saleStore = useSaleStore();
@@ -286,10 +287,13 @@ const formatCurrency = (amount, curr) => {
 };
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('ar-IQ', {
+  return new Date(date).toLocaleDateString('ar', {
     year: 'numeric',
-    month: 'short',
+    month: 'long',
     day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    numberingSystem: 'latn',
   });
 };
 

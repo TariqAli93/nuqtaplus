@@ -30,6 +30,7 @@
               label="اسم الشركة *"
               :rules="[rules.required, rules.maxLength(255)]"
               variant="outlined"
+              density="comfortable"
               prepend-inner-icon="mdi-domain"
               required
             />
@@ -42,6 +43,7 @@
               label="نوع الفاتورة"
               :items="invoiceTypes"
               variant="outlined"
+              density="comfortable"
               item-title="text"
               item-value="value"
               prepend-inner-icon="mdi-receipt"
@@ -64,6 +66,7 @@
               label="المدينة"
               :rules="[rules.maxLength(100), rules.required]"
               variant="outlined"
+              density="comfortable"
               prepend-inner-icon="mdi-city"
             />
           </v-col>
@@ -75,6 +78,7 @@
               label="المنطقة"
               :rules="[rules.maxLength(100), rules.required]"
               variant="outlined"
+              density="comfortable"
               prepend-inner-icon="mdi-map-outline"
             />
           </v-col>
@@ -86,6 +90,7 @@
               label="الشارع"
               :rules="[rules.maxLength(200), rules.required]"
               variant="outlined"
+              density="comfortable"
               prepend-inner-icon="mdi-road"
             />
           </v-col>
@@ -106,6 +111,7 @@
               :rules="[rules.validPhone, rules.required]"
               variant="outlined"
               prepend-inner-icon="mdi-phone"
+              density="comfortable"
               label="رقم الهاتف"
             >
             </v-text-field>
@@ -117,6 +123,7 @@
               :rules="[rules.validPhone]"
               variant="outlined"
               prepend-inner-icon="mdi-phone"
+              density="comfortable"
               label="رقم هاتف إضافي"
             >
             </v-text-field>
@@ -129,7 +136,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue';
-import { useSettingsStore } from '../../stores/settings';
+import { useSettingsStore } from '@/stores/settings';
 
 // Stores
 const settingsStore = useSettingsStore();

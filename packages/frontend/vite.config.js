@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vuetify from 'vite-plugin-vuetify';
 import { fileURLToPath, URL } from 'node:url';
-import tailwindcss from '@tailwindcss/vite';
 import electron from 'vite-plugin-electron/simple';
 
 export default defineConfig({
@@ -11,7 +10,6 @@ export default defineConfig({
     vuetify({
       autoImport: true,
     }),
-    tailwindcss(),
     electron({
       main: {
         // Shortcut of `build.lib.entry`
@@ -50,7 +48,10 @@ export default defineConfig({
     outDir: 'dist-electron/dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: 'index.html',
+      input: {
+        main: 'index.html',
+        activation: 'activation.html',
+      },
     },
   },
   server: {

@@ -3,7 +3,7 @@ import path from 'path';
 import fp from 'fastify-plugin';
 import { fileURLToPath } from 'url';
 
-function resolveFromEnv(envValue) {
+export function resolveFromEnv(envValue) {
   if (!envValue) return null;
 
   const v = String(envValue).trim();
@@ -46,6 +46,13 @@ async function ensureDatabasePlugin(fastify, opts) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
       fastify.log.info({ dir }, 'Created database directory');
+    }
+
+    // Create backups directory
+    const backupsDir = path.join(dir, 'backups');
+    if (!fs.existsSync(backupsDir)) {
+      fs.mkdirSync(backupsDir, { recursive: true });
+      fastify.log.info({ backupsDir }, 'Created backups directory');
     }
 
     if (!fs.existsSync(dbFile)) {

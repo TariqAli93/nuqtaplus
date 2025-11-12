@@ -3,9 +3,14 @@ import { users, roles, activityLogs, rolePermissions, permissions } from '../mod
 import { hashPassword, comparePassword } from '../utils/helpers.js';
 import { AuthenticationError, NotFoundError, ConflictError } from '../utils/errors.js';
 import { eq } from 'drizzle-orm';
-import config from '../config.js';
 
 export class AuthService {
+  /**
+   * Register new user
+   * @param {Object} userData - User registration data
+   * @param {Object} fastify - Fastify instance for JWT signing
+   * @returns {Promise<Object>} Created user and JWT token
+   */
   async register(userData, fastify) {
     // Check if user exists
     const [existingUser] = await db
@@ -49,8 +54,14 @@ export class AuthService {
     };
   }
 
+  /**
+   * User login with credentials validation
+   * @param {Object} credentials - Login credentials
+   * @param {Object} fastify - Fastify instance for JWT signing
+   * @returns {Promise<Object>} User data and JWT token
+   */
   async login(credentials, fastify) {
-    // Find user
+    // Find user by username
     const [user] = await db
       .select()
       .from(users)
@@ -61,6 +72,7 @@ export class AuthService {
       throw new AuthenticationError('Invalid username or password');
     }
 
+    // Check if user account is active
     if (!user.isActive) {
       throw new AuthenticationError('Account is inactive');
     }
@@ -72,9 +84,14 @@ export class AuthService {
       throw new AuthenticationError('Invalid username or password');
     }
 
-    // Get user role and join permissions
+    // Get user role
     const [role] = await db.select().from(roles).where(eq(roles.id, user.roleId)).limit(1);
 
+    if (!role) {
+      throw new NotFoundError('User role not found');
+    }
+
+    // Get role permissions
     const rolePerms = await db
       .select({
         permissionName: permissions.name,
@@ -83,45 +100,51 @@ export class AuthService {
       .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
       .where(eq(rolePermissions.roleId, role.id));
 
+    // Attach permissions to user object
     user.permissions = rolePerms.map((rp) => rp.permissionName);
+    user.role = role;
 
-    // Generate token
+    // Generate JWT token
     const token = fastify.jwt.sign({
       id: user.id,
       username: user.username,
       roleId: user.roleId,
     });
 
-    console.log('Generated JWT token:', token);
-
-    // Remove password from response
-    const userWithoutPassword = { ...user };
-    delete userWithoutPassword.password;
-
-    // Update last login and log activity
-    await db
-      .update(users)
-      .set({ lastLoginAt: new Date().toISOString() })
-      .where(eq(users.id, user.id));
-
+    // Log last login activity
     await db.insert(activityLogs).values({
       userId: user.id,
       action: 'login',
       resource: 'auth',
-      details: 'User logged in',
+      resourceId: null,
+      description: 'User logged in successfully',
+      createdAt: new Date().toISOString(),
     });
 
+    // Save database changes
     saveDatabase();
+
+    // Remove sensitive data from response
+    const userWithoutPassword = { ...user };
+    delete userWithoutPassword.password;
 
     return {
       user: {
         ...userWithoutPassword,
-        role: role?.name,
+        role: {
+          id: role.id,
+          name: role.name,
+        },
       },
       token,
     };
   }
 
+  /**
+   * Get user profile by ID
+   * @param {number} userId - User ID
+   * @returns {Promise<Object>} User profile data
+   */
   async getProfile(userId) {
     const [user] = await db
       .select({
@@ -131,7 +154,8 @@ export class AuthService {
         phone: users.phone,
         isActive: users.isActive,
         createdAt: users.createdAt,
-        role: roles.name,
+        roleId: users.roleId,
+        roleName: roles.name,
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
@@ -142,9 +166,66 @@ export class AuthService {
       throw new NotFoundError('User');
     }
 
+    // Get user permissions
+    const rolePerms = await db
+      .select({
+        permissionName: permissions.name,
+      })
+      .from(rolePermissions)
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(rolePermissions.roleId, user.roleId));
+
+    user.permissions = rolePerms.map((rp) => rp.permissionName);
+
+    // Structure role object
+    user.role = {
+      id: user.roleId,
+      name: user.roleName,
+    };
+
+    // Remove temporary fields
+    delete user.roleName;
+
     return user;
   }
 
+  /**
+   * Change user password
+   * @param {number} userId - User ID
+   * @param {string} currentPassword - Current password
+   * @param {string} newPassword - New password
+   * @returns {Promise<void>}
+   */
+  async changePassword(userId, currentPassword, newPassword) {
+    // Get user
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    // Verify current password
+    const isValidPassword = await comparePassword(currentPassword, user.password);
+
+    if (!isValidPassword) {
+      throw new AuthenticationError('Current password is incorrect');
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update password
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
+
+    saveDatabase();
+  }
+
+  /**
+   * Create first user (admin) during initial setup
+   * @param {Object} userData - User data
+   * @param {Object} fastify - Fastify instance
+   * @returns {Promise<Object>} Created user and token
+   */
   async createFirstUser(userData, fastify) {
     // Check if any users exist
     const existingUserCount = await db.select().from(users).limit(1);

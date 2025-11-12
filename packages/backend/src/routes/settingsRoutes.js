@@ -537,4 +537,204 @@ export default async function settingsRoutes(fastify) {
     preHandler: [fastify.authenticate],
     handler: settingsController.resetApplication,
   });
+
+  fastify.post(
+    '/backups',
+    {
+      schema: {
+        tags: ['Settings'],
+        summary: 'Create a backup of the database',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          properties: {
+            destinationDir: {
+              type: 'string',
+              description: 'Optional destination directory for the backup',
+            },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  filename: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    settingsController.createBackup
+  );
+
+  fastify.get(
+    '/backups',
+    {
+      schema: {
+        tags: ['Settings'],
+        summary: 'List all database backups',
+        description: 'Retrieve all database backup files with their sizes and creation times.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', description: 'Backup unique identifier' },
+                    filename: { type: 'string', description: 'Backup file name' },
+                    sizeBytes: { type: 'number', description: 'File size in bytes' },
+                    sizeReadable: {
+                      type: 'string',
+                      description: 'File size formatted, e.g. 2.3 MB',
+                    },
+                    createdAt: {
+                      type: 'string',
+                      format: 'date-time',
+                      description: 'File creation time',
+                    },
+                    modifiedAt: {
+                      type: 'string',
+                      format: 'date-time',
+                      description: 'Last modification time',
+                    },
+                  },
+                },
+              },
+            },
+            example: {
+              success: true,
+              data: [
+                {
+                  id: '2025-11-09T23-10-00',
+                  filename: 'backup-2025-11-09T23-10-00.db',
+                  sizeBytes: 2355200,
+                  sizeReadable: '2.24 MB',
+                  createdAt: '2025-11-09T23:10:12.123Z',
+                  modifiedAt: '2025-11-09T23:10:12.123Z',
+                },
+              ],
+            },
+          },
+          401: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean', default: false },
+              message: { type: 'string' },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean', default: false },
+              message: { type: 'string' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    settingsController.listBackups
+  );
+
+  fastify.delete(
+    '/backups/:id',
+    {
+      schema: {
+        tags: ['Settings'],
+        summary: 'Delete a database backup by ID',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'Backup unique identifier' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    settingsController.deleteBackup
+  );
+
+  fastify.get(
+    '/backups/:id/restore',
+    {
+      schema: {
+        tags: ['Settings'],
+        summary: 'Restore the database from a backup',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'Backup unique identifier' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    settingsController.restoreBackup
+  );
+
+  fastify.get(
+    '/backups/:filename/download',
+    {
+      schema: {
+        tags: ['Settings'],
+        summary: 'Download a database backup by filename',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['filename'],
+          properties: {
+            filename: { type: 'string', description: 'Backup filename' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    settingsController.downloadBackup
+  );
 }

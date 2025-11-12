@@ -38,7 +38,5 @@ export default {
 
     // تنظيف التحميل عند بدء التطبيق
     loadingStore.clearAllLoading();
-
-    console.log('✅ نظام التحميل المتقدم جاهز');
   },
 };

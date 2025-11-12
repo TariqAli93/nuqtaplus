@@ -44,10 +44,13 @@
         </template>
         <v-list>
           <v-list-item>
-            <v-list-item-title>{{ authStore.user?.fullName }}</v-list-item-title>
-            <v-list-item-subtitle>{{ authStore.user?.role }}</v-list-item-subtitle>
+            <v-list-item-title>{{ authStore.user?.username }}</v-list-item-title>
+            <v-list-item-subtitle>{{ authStore.user?.role?.name }}</v-list-item-subtitle>
           </v-list-item>
           <v-divider></v-divider>
+          <v-list-item prepend-icon="mdi-account-circle" to="/profile">
+            <v-list-item-title>الملف الشخصي</v-list-item-title>
+          </v-list-item>
           <v-list-item prepend-icon="mdi-logout" @click="handleLogout">
             <v-list-item-title>تسجيل خروج</v-list-item-title>
           </v-list-item>
@@ -83,7 +86,6 @@ theme.change(savedTheme);
 
 // تطبيق color-scheme على HTML
 const applyColorScheme = (themeName) => {
-  console.log('Applying color scheme:', themeName);
   document.documentElement.style.colorScheme = themeName === 'dark' ? 'dark' : 'light';
 };
 
@@ -105,7 +107,7 @@ const menuItems = [
     permission: 'read:permissions',
   },
   { title: 'التقارير', icon: 'mdi-chart-box', to: '/reports', permission: 'read:reports' },
-  { title: 'الاعدادات', icon: 'mdi-cog', to: '/about', permission: null },
+  { title: 'الاعدادات', icon: 'mdi-cog', to: '/settings', permission: 'read:settings' },
 ];
 
 // 🔹 فلترة القائمة حسب صلاحيات المستخدم

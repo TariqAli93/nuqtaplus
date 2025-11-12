@@ -17,7 +17,6 @@ import roleRoutes from './routes/roleRoutes.js';
 import permissionRoutes from './routes/permissionRoutes.js';
 import currencyRoutes from './routes/currencyRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import backupRoutes from './routes/backupRoutes.js';
 
 // Initialize Fastify
 const fastify = Fastify({
@@ -83,7 +82,6 @@ const start = async () => {
     await fastify.register(permissionRoutes, { prefix: '/api/permissions' });
     await fastify.register(currencyRoutes, { prefix: '/api/currencies' });
     await fastify.register(settingsRoutes, { prefix: '/api/settings' });
-    await fastify.register(backupRoutes, { prefix: '/api/backup' });
 
     // Start listening
     await fastify.listen({
@@ -106,14 +104,26 @@ const start = async () => {
   }
 };
 
-// Handle shutdown gracefully
-const signals = ['SIGINT', 'SIGTERM'];
-signals.forEach((signal) => {
-  process.on(signal, async () => {
-    fastify.log.info(`Received ${signal}, closing server...`);
-    await fastify.close();
-    process.exit(0);
-  });
+export const closeServer = async () => {
+  fastify.log.info('Shutting down server...');
+  await fastify.close();
+  fastify.log.info('Server shut down complete.');
+};
+
+fastify.post('/__shutdown__', async (req, res) => {
+  fastify.log.info('🛑 Shutdown requested from Electron');
+  res.send({ message: 'Shutting down...' });
+
+  setTimeout(async () => {
+    try {
+      await closeServer();
+      fastify.log.info('✅ Server closed via HTTP shutdown route');
+      process.exit(0);
+    } catch (err) {
+      fastify.log.error('❌ Error closing server:', err);
+      process.exit(1);
+    }
+  }, 200);
 });
 
 start();

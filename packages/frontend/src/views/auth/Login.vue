@@ -262,7 +262,7 @@ onMounted(() => {
 
   // اتّباع تفضيل النظام تلقائياً
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  theme.global.name.value = prefersDark ? 'dark' : 'light';
+  theme.change(prefersDark ? 'dark' : 'light');
 
   setupBlobs();
   rafId = requestAnimationFrame(tick);

@@ -148,13 +148,13 @@
               </v-row>
 
               <v-card variant="tonal" color="info" class="pa-3 mt-3">
-                <div class="d-flex justify-space-between">
+                <div class="d-flex justify-space-between border-b py-2">
                   <span>المبلغ بعد الفائدة:</span>
                   <span class="font-weight-bold">
                     {{ formatCurrency(totalWithInterest) }}
                   </span>
                 </div>
-                <div class="d-flex justify-space-between">
+                <div class="d-flex justify-space-between border-b py-2">
                   <span>قيمة القسط الواحد:</span>
                   <span class="font-weight-bold">
                     {{ formatCurrency(installmentAmount) }}
@@ -177,7 +177,7 @@
             <div
               v-for="summary in saleSummary"
               :key="summary.label"
-              class="d-flex justify-space-between mb-1"
+              class="d-flex justify-space-between mb-1 border-b py-3"
             >
               <span>{{ summary.label }}:</span>
               <span class="font-weight-bold">{{ summary.value }}</span>
@@ -387,8 +387,6 @@ const submitSale = async () => {
     notify.success('تم حفظ البيع بنجاح ✅');
 
     router.push({ name: 'SaleDetails', params: { id: saleResponse.data.id } });
-
-    console.log('بيانات البيع المرسلة للحفظ:', sale.value);
   } catch (error) {
     console.error('خطأ أثناء حفظ البيع:', error);
     notify.error('حدث خطأ أثناء حفظ البيع. يرجى المحاولة مرة أخرى.');
@@ -418,7 +416,7 @@ onMounted(async () => {
 
 /* 💱 تنسيق العملة */
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat('ar-IQ', {
+  new Intl.NumberFormat('ar', {
     style: 'currency',
     currency: sale.value.currency,
     maximumFractionDigits: 0,

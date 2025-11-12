@@ -13,11 +13,11 @@
 </template>
 <script setup>
 import { onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import AppSnackbar from '@/components/AppSnackbar.vue';
-import CreateFirstUser from '@/components/CreateFirstUser.vue';
-import LoadingSpinner from '@/components/LoadingSpinner.vue';
-import LoadingProgressBar from '@/components/LoadingProgressBar.vue';
+import { useAuthStore } from './stores/auth';
+import AppSnackbar from './components/AppSnackbar.vue';
+import CreateFirstUser from './components/CreateFirstUser.vue';
+import LoadingSpinner from './components/LoadingSpinner.vue';
+import LoadingProgressBar from './components/LoadingProgressBar.vue';
 
 const authStore = useAuthStore();
 
@@ -28,7 +28,7 @@ onMounted(async () => {
 </script>
 
 <style>
-@import 'tailwindcss';
+@import './styles/tailwind.css';
 * {
   margin: 0;
   padding: 0;

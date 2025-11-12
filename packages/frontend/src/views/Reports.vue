@@ -9,16 +9,6 @@
 
       <div class="d-flex gap-2">
         <v-btn
-          color="success"
-          variant="flat"
-          prepend-icon="mdi-file-excel"
-          :disabled="!report"
-          class="mx-3"
-          @click="exportToExcel"
-        >
-          Excel
-        </v-btn>
-        <v-btn
           color="error"
           variant="flat"
           prepend-icon="mdi-file-pdf-box"
@@ -335,40 +325,11 @@ const fetchReport = async () => {
       endDate: toYmd(filters.value.endDate),
       currency: filters.value.currency,
     });
-
-    notificationStore.success('تم تحميل التقرير بنجاح');
   } catch {
     notificationStore.error('حدث خطأ أثناء تحميل التقرير');
   } finally {
     loading.value = false;
   }
-};
-
-// 🔹 Export to Excel
-const exportToExcel = () => {
-  if (!report.value) return;
-  const csv = [
-    ['تقرير المبيعات'],
-    ['الفترة', `${filters.value.startDate} إلى ${filters.value.endDate}`],
-    [],
-    ['المقياس', 'USD', 'IQD'],
-    ['إجمالي المبيعات', report.value.salesUSD, report.value.salesIQD],
-    ['المدفوع', report.value.paidUSD, report.value.paidIQD],
-    ['متوسط البيع', report.value.avgSaleUSD, report.value.avgSaleIQD],
-    ['عدد المبيعات', report.value.salesCount],
-    ['مبيعات مكتملة', report.value.completedSales],
-    ['مبيعات معلقة', report.value.pendingSales],
-    ['إجمالي الربح', report.value.totalProfit],
-  ]
-    .map((row) => row.join(','))
-    .join('\n');
-
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `sales-report-${new Date().toISOString().split('T')[0]}.csv`;
-  link.click();
-  notificationStore.showNotification('تم تصدير التقرير إلى Excel', 'success');
 };
 
 // 🔹 Export to PDF (تصميم احترافي للطباعة)
@@ -523,7 +484,14 @@ const exportToPDF = () => {
         </table>
 
         <div class="footer">
-          <p>تم إنشاء هذا التقرير تلقائيًا بتاريخ ${new Date().toLocaleDateString('ar-IQ')}</p>
+          <p>تم إنشاء هذا التقرير تلقائيًا بتاريخ ${new Date().toLocaleDateString('ar', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            numberingSystem: 'latn',
+          })}</p>
         </div>
       </body>
     </html>

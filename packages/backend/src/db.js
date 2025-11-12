@@ -14,6 +14,7 @@ mkdirSync(dbDir, { recursive: true });
 
 // Initialize SQLite database with sql.js
 let saveDatabaseFn;
+let closeDatabaseFn;
 
 async function initDB() {
   const SQL = await initSqlJs();
@@ -33,6 +34,14 @@ async function initDB() {
     const data = sqlite.export();
     writeFileSync(dbPath, data);
   };
+
+  // Close database function
+  const closeDatabase = () => {
+    sqlite.close();
+  };
+
+  // Store the close function for export
+  closeDatabaseFn = closeDatabase;
 
   // Store the save function for export
   saveDatabaseFn = saveDatabase;

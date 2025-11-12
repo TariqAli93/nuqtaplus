@@ -216,3 +216,13 @@ export const settings = sqliteTable('settings', {
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
   updatedBy: integer('updated_by').references(() => users.id),
 });
+
+export const licenses = sqliteTable('licenses', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  licenseKey: text('license_key').notNull().unique(),
+  issuedTo: text('issued_to'),
+  isActive: integer('is_active', { mode: 'boolean' }).default(false),
+  issuedAt: text('issued_at').default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: text('expires_at').notNull(),
+  createdBy: integer('created_by').references(() => users.id),
+});
