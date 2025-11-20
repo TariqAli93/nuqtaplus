@@ -1,160 +1,6 @@
-// import db from './db.js';
-// import { roles, permissions, rolePermissions, customers, settings } from './models/index.js';
-// import { sql } from 'drizzle-orm';
-
-// async function seed() {
-//   console.log('🌱 Starting database seeding...\n');
-
-//   try {
-//     // Helper: Count rows of a table
-//     const countTable = async (table) => {
-//       const result = await db
-//         .select({ count: sql`count(*)` })
-//         .from(table)
-//         .get();
-//       return Number(result?.count || 0);
-//     };
-
-//     // Helper: Insert if table empty
-//     const insertIfEmpty = async (table, data, label) => {
-//       const count = await countTable(table);
-//       if (count === 0) {
-//         await db.insert(table).values(data);
-//         console.log(`✓ ${label} inserted`);
-//       } else {
-//         console.log(`↩️ ${label} already exist`);
-//       }
-//     };
-
-//     // ========== ROLES ==========
-//     console.log('→ Creating roles...');
-//     await insertIfEmpty(
-//       roles,
-//       [
-//         { name: 'admin', description: 'Administrator with full access' },
-//         { name: 'manager', description: 'Manager with limited access' },
-//         { name: 'sales', description: 'Sales staff' },
-//       ],
-//       'Roles'
-//     );
-//     const permissionsList = {
-//       users: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       permissions: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       roles: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       customers: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       products: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       sales: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       categories: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-//       reports: ['view', 'read'],
-//       dashboard: ['view', 'read'],
-//       settings: ['manage', 'view', 'read', 'update', 'create', 'delete'],
-//     };
-//     // ========== PERMISSIONS ==========
-//     console.log('\n→ Creating permissions...');
-//     await insertIfEmpty(
-//       permissions,
-//       Object.entries(permissionsList).flatMap(([resource, actions]) =>
-//         actions.map((action) => ({
-//           resource,
-//           action,
-//           name: `${action}:${resource}`,
-//           description: `${action.charAt(0).toUpperCase() + action.slice(1)} permission for ${resource}`,
-//         }))
-//       ),
-//       'Permissions'
-//     );
-
-//     // ========== ROLES ↔ PERMISSIONS ==========
-//     console.log('\n→ Assigning permissions to roles...');
-
-//     const allRoles = await db.select().from(roles).all();
-//     const allPerms = await db.select().from(permissions).all();
-//     const rolePermCount = await countTable(rolePermissions);
-
-//     if (rolePermCount === 0) {
-//       const adminRole = allRoles.find((r) => r.name === 'admin');
-//       const managerRole = allRoles.find((r) => r.name === 'manager');
-//       const salesRole = allRoles.find((r) => r.name === 'sales');
-
-//       const adminPerms = allPerms.map((p) => ({
-//         roleId: adminRole.id,
-//         permissionId: p.id,
-//       }));
-
-//       const managerPerms = allPerms
-//         .filter((p) => p.resource !== 'users' && p.action !== 'delete')
-//         .map((p) => ({
-//           roleId: managerRole.id,
-//           permissionId: p.id,
-//         }));
-
-//       const salesPerms = allPerms
-//         .filter(
-//           (p) =>
-//             ['sales', 'products', 'customers', 'dashboard', 'categories'].includes(p.resource) &&
-//             p.action !== 'delete'
-//         )
-//         .map((p) => ({
-//           roleId: salesRole.id,
-//           permissionId: p.id,
-//         }));
-
-//       await db.insert(rolePermissions).values([...adminPerms, ...managerPerms, ...salesPerms]);
-//       console.log('✓ Role-permission mapping completed');
-//     } else {
-//       console.log('↩️ Role-permissions already exist');
-//     }
-
-//     // ========== DEFAULT CUSTOMER ==========
-//     console.log('\n→ Creating default customer...');
-//     await insertIfEmpty(
-//       customers,
-//       [
-//         {
-//           name: 'عميل افتراضي',
-//         },
-//       ],
-//       'Customers'
-//     );
-
-//     // ========== CURRENCY SETTINGS ==========
-//     console.log('\n→ Creating currency settings...');
-//     const settingsCount = await countTable(settings);
-//     if (settingsCount === 0) {
-//       await db.insert(settings).values([
-//         {
-//           key: 'currency.default',
-//           value: 'IQD',
-//           description: 'العملة الافتراضية للنظام',
-//         },
-//         {
-//           key: 'currency.usd_rate',
-//           value: '1500',
-//           description: 'سعر صرف الدولار الأمريكي مقابل الدينار العراقي',
-//         },
-//         {
-//           key: 'currency.iqd_rate',
-//           value: '1',
-//           description: 'سعر صرف الدينار العراقي (العملة المرجعية)',
-//         },
-//       ]);
-//       console.log('✓ Currency settings inserted');
-//     } else {
-//       console.log('↩️ Settings already exist');
-//     }
-
-//     console.log('\n🌱 Database seeding completed successfully!');
-//   } catch (error) {
-//     console.error('❌ Error during seeding:', error.message);
-//     console.error(error.stack);
-//   }
-// }
-
-// seed();
-
-import db from './db.js';
+import db, { saveDatabase } from './db.js';
 import { roles, permissions, rolePermissions, customers, settings } from './models/index.js';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 
 async function seed() {
   console.log('🌱 Starting database seeding...\n');
@@ -169,7 +15,7 @@ async function seed() {
       return Number(result?.count || 0);
     };
 
-    // Helper: Insert if table empty
+    // Helper: Insert if table empty (preserve existing data)
     const insertIfEmpty = async (table, data, label) => {
       const count = await countTable(table);
       if (count === 0) {
@@ -180,105 +26,148 @@ async function seed() {
       }
     };
 
+    // Helper: Ensure role exists and return role row
+    const ensureRole = async (name, description) => {
+      const [existing] = await db.select().from(roles).where(eq(roles.name, name)).limit(1);
+      if (existing) return existing;
+      const [newRole] = await db.insert(roles).values({ name, description }).returning();
+      console.log(`✓ Role '${name}' created`);
+      return newRole;
+    };
+
     // ========== ROLES ==========
     console.log('→ Creating roles...');
     await insertIfEmpty(
       roles,
       [
         { name: 'admin', description: 'Administrator with full access' },
-        { name: 'cashier', description: 'Cashier — sales only' },
+        { name: 'cashier', description: 'Cashier role with limited access' },
       ],
       'Roles'
     );
-
-    // ========== PERMISSIONS LIST ==========
-    console.log('\n→ Creating permissions...');
-
+    // جميع الصلاحيات المتاحة في النظام - الأدمن يحصل على كل شيء
     const permissionsList = {
-      // صلاحيات إدارة النظام
-      users: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-      permissions: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-      roles: ['manage', 'view', 'create', 'read', 'update', 'delete'],
-      settings: ['manage', 'view', 'read', 'update'],
-
-      // صلاحيات الموارد الأساسية
-      customers: ['view', 'create', 'read', 'update'],
-      products: ['view', 'create', 'read', 'update'],
-      categories: ['view', 'create', 'read', 'update'],
-
-      // الصلاحيات الخاصة بالمبيعات فقط
-      sales: ['view', 'create', 'read', 'update'],
+      users: ['view', 'create', 'read', 'update', 'delete'],
+      permissions: ['view', 'create', 'read', 'update', 'delete'],
+      roles: ['view', 'create', 'read', 'update', 'delete'],
+      customers: ['view', 'create', 'read', 'update', 'delete'],
+      products: ['view', 'create', 'read', 'update', 'delete'],
+      sales: ['view', 'create', 'read', 'update', 'delete'],
+      categories: ['view', 'create', 'read', 'update', 'delete'],
+      reports: ['view', 'read'],
       dashboard: ['view', 'read'],
+      settings: ['view', 'read', 'update', 'create', 'delete'],
+    };
+
+    // صلاحيات الكاشير - محددة بدقة وفقاً للمتطلبات
+    const cashierPermissions = {
+      // الإعدادات: القراءة والعرض فقط (بدون تعديل أو حذف)
+      settings: ['view', 'read'],
+
+      // الأصناف: جميع الصلاحيات الكاملة (ملاحظة: حذف مقتصر على الأدمن فقط، سيتم سحب delete لاحقاً)
+      categories: ['view', 'create', 'read', 'update', 'delete'],
+
+      // المنتجات: العرض والقراءة والتعديل (بدون إنشاء أو حذف)
+      products: ['view', 'read', 'update'],
+
+      // المبيعات: جميع الصلاحيات ما عدا الحذف
+      sales: ['view', 'create', 'read', 'update'],
+
+      // العملاء: جميع الصلاحيات ما عدا الحذف
+      customers: ['view', 'create', 'read', 'update'],
+
+      // لوحة التحكم: الوصول الكامل مع صلاحية القراءة فقط
+      dashboard: ['view', 'read'],
+
+      // التقارير: العرض والقراءة فقط
       reports: ['view', 'read'],
     };
 
-    const cashierPermissions = [
-      'view:customers',
-      'create:customers',
-      'read:customers',
-      'update:customers',
-      'view:products',
-      'read:products',
-      'view:categories',
-      'read:categories',
-      'view:sales',
-      'create:sales',
-      'read:sales',
-      'view:dashboard',
-      'read:dashboard',
-      'view:settings',
-      'read:settings',
-    ];
-
-    await insertIfEmpty(
-      permissions,
-      Object.entries(permissionsList).flatMap(([resource, actions]) =>
-        actions.map((action) => ({
-          resource,
-          action,
-          name: `${action}:${resource}`,
-          description: `${action} permission for ${resource}`,
-        }))
-      ),
-      'Permissions'
+    // ========== PERMISSIONS ==========
+    console.log('\n→ Creating permissions...');
+    // Build full permission objects and insert missing ones
+    const allPermissionObjs = Object.entries(permissionsList).flatMap(([resource, actions]) =>
+      actions.map((action) => ({
+        resource,
+        action,
+        name: `${action}:${resource}`,
+        description: `${action.charAt(0).toUpperCase() + action.slice(1)} permission for ${resource}`,
+      }))
     );
 
-    // ========== ROLE ↔ PERMISSIONS ASSIGNMENT ==========
+    // Existing permission names
+    const existingPermissions = await db.select({ name: permissions.name }).from(permissions).all();
+    const existingNames = new Set(existingPermissions.map((p) => p.name));
+
+    const toInsert = allPermissionObjs.filter((p) => !existingNames.has(p.name));
+    if (toInsert.length) {
+      await db.insert(permissions).values(toInsert);
+      console.log(`✓ Inserted ${toInsert.length} new permissions`);
+    } else {
+      console.log('↩️ No new permissions to insert');
+    }
+
+    // ========== ROLES ↔ PERMISSIONS ==========
     console.log('\n→ Assigning permissions to roles...');
 
-    const allRoles = await db.select().from(roles).all();
+    // Ensure roles exist
+    const adminRole = await ensureRole('admin', 'Administrator with full access');
+    const cashierRole = await ensureRole('cashier', 'Cashier role with limited access');
+
+    // Refresh all permissions
     const allPerms = await db.select().from(permissions).all();
-    const rolePermCount = await countTable(rolePermissions);
 
-    if (rolePermCount === 0) {
-      const adminRole = allRoles.find((r) => r.name === 'admin');
-      const cashierRole = allRoles.find((r) => r.name === 'cashier');
+    // Helper to get permission ids by name
+    const permIdsByName = (names) =>
+      allPerms.filter((p) => names.includes(p.name)).map((p) => p.id);
 
-      // admin = كل الصلاحيات
-      const adminPerms = allPerms.map((p) => ({
-        roleId: adminRole.id,
-        permissionId: p.id,
-      }));
+    // Build admin permission names (all permissions)
+    const adminPermissionNames = allPerms.map((p) => p.name);
 
-      // cashier = فقط صلاحيات المبيعات
-      // read products, customers, categories, sales, dashboard, reports, settings,
-      const cashierPerms = cashierPermissions.map((permName) => {
-        const perm = allPerms.find((p) => p.name === permName);
-        return {
-          roleId: cashierRole.id,
-          permissionId: perm.id,
-        };
-      });
+    // For cashier: gather names from cashierPermissions mapping
+    // but ensure delete is reserved for admin only
+    const cashierPermissionNames = Object.entries(cashierPermissions).flatMap(
+      ([resource, actions]) =>
+        actions
+          .filter((action) => action !== 'delete') // Admin-only deletion enforcement
+          .map((action) => `${action}:${resource}`)
+    );
 
-      await db.insert(rolePermissions).values([...adminPerms, ...cashierPerms]);
-      console.log('✓ Role-permission mapping completed');
-    } else {
-      console.log('↩️ Role-permissions already exist');
-    }
+    // Remove duplicates and ensure names are present in allPerms
+    const distinctCashierPerms = Array.from(new Set(cashierPermissionNames)).filter((name) =>
+      allPerms.some((p) => p.name === name)
+    );
+
+    // Delete existing mappings and re-insert for safety (idempotency)
+    await db.delete(rolePermissions).where(eq(rolePermissions.roleId, adminRole.id));
+    const adminValues = permIdsByName(adminPermissionNames).map((permissionId) => ({
+      roleId: adminRole.id,
+      permissionId,
+    }));
+    if (adminValues.length) await db.insert(rolePermissions).values(adminValues);
+
+    await db.delete(rolePermissions).where(eq(rolePermissions.roleId, cashierRole.id));
+    const cashierValues = permIdsByName(distinctCashierPerms).map((permissionId) => ({
+      roleId: cashierRole.id,
+      permissionId,
+    }));
+    if (cashierValues.length) await db.insert(rolePermissions).values(cashierValues);
+
+    console.log(
+      '✓ Role-permission mapping completed (admin: all, cashier: limited without delete)'
+    );
 
     // ========== DEFAULT CUSTOMER ==========
     console.log('\n→ Creating default customer...');
-    await insertIfEmpty(customers, [{ name: 'عميل افتراضي' }], 'Customers');
+    await insertIfEmpty(
+      customers,
+      [
+        {
+          name: 'عميل افتراضي',
+        },
+      ],
+      'Customers'
+    );
 
     // ========== CURRENCY SETTINGS ==========
     console.log('\n→ Creating currency settings...');
@@ -305,6 +194,9 @@ async function seed() {
     } else {
       console.log('↩️ Settings already exist');
     }
+
+    // Save DB to disk
+    saveDatabase();
 
     console.log('\n🌱 Database seeding completed successfully!');
   } catch (error) {

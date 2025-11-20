@@ -82,6 +82,7 @@ function createActivationWindow() {
     resizable: false,
     fullscreen: false,
     fullscreenable: false,
+    icon: path.join(__dirname, '../build/icon.png'),
     webPreferences: {
       devTools: false, // ← أهم شيء
       contextIsolation: true,

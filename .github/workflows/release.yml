@@ -1,0 +1,36 @@
+name: Build and Publish (Windows Release)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm & dependencies
+        run: |
+          npm i -g pnpm
+          pnpm install --frozen-lockfile
+
+      - name: Build backend
+        run: |
+          node ./build-backend.js
+
+      - name: Build & Publish frontend (Windows build)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          pnpm --filter frontend build:win
+          pnpm --filter frontend run publish:win
