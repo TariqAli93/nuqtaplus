@@ -1,6 +1,7 @@
 <template>
   <v-app>
     <!-- شريط التقدم أعلى الصفحة -->
+    <UpdateNotification />
     <LoadingProgressBar />
 
     <router-view />
@@ -20,6 +21,7 @@ import AppErrorDialog from './components/AppErrorDialog.vue';
 import CreateFirstUser from './components/CreateFirstUser.vue';
 import LoadingSpinner from './components/LoadingSpinner.vue';
 import LoadingProgressBar from './components/LoadingProgressBar.vue';
+import UpdateNotification from '@/components/UpdateNotification.vue';
 
 const authStore = useAuthStore();
 

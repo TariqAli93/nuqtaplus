@@ -17,4 +17,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   setSize: (width, height) => ipcRenderer.invoke('window:auto-resize', { width, height }),
   invoke: (channel, data) => ipcRenderer.invoke(channel, data),
+
+  onUpdateDownloading: (callback) => {
+    ipcRenderer.on('update-downloading', callback);
+  },
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on('update-progress', (event, data) => callback(data));
+  },
+  removeUpdateListeners: () => {
+    ipcRenderer.removeAllListeners('update-downloading');
+    ipcRenderer.removeAllListeners('update-progress');
+  },
+
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on('update-available', (event, data) => callback(data));
+  },
+
+  onUpdateReady: (callback) => {
+    ipcRenderer.on('update-ready', (_event, data) => callback(data));
+  },
+  onUpdateError: (callback) => {
+    ipcRenderer.on('update-error', (_event, msg) => callback(msg));
+  },
+
+  checkUpdatesManually: () => ipcRenderer.invoke('update:checkManually'),
 });

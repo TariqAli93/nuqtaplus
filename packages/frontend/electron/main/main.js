@@ -5,6 +5,7 @@ import { promises as fs } from 'fs-extra';
 import logger from '../scripts/logger.js';
 import BackendManager from '../scripts/backendManager.js';
 import { getMachineId, saveLicenseString, verifyLicense } from '../scripts/licenseManager.js';
+import { setupAutoUpdater, checkForUpdatesManually } from '../scripts/autoUpdater.js';
 
 // --- المتغيرات العامة ---
 const __filename = fileURLToPath(import.meta.url);
@@ -34,8 +35,6 @@ if (!gotTheLock) {
 function createWindow() {
   if (mainWindow) return;
 
-  logger.info('Creating main window...');
-
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -52,7 +51,10 @@ function createWindow() {
     },
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    setupAutoUpdater(mainWindow);
+  });
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
@@ -76,7 +78,7 @@ function createActivationWindow() {
     width: 550,
     height: 700,
     autoHideMenuBar: true,
-    frame: false,
+    frame: true,
     resizable: false,
     fullscreen: false,
     fullscreenable: false,
@@ -186,11 +188,13 @@ ipcMain.handle('backend:start', async () => {
   return { ok: true };
 });
 
+// --- إيقاف backend ---
 ipcMain.handle('backend:stop', async () => {
   await backendManager.CleanupBackendProcess();
   return { ok: true };
 });
 
+// --- إعادة تشغيل backend ---
 ipcMain.handle('backend:restart', async () => {
   await backendManager.CleanupBackendProcess();
   await backendManager.StartBackend();
@@ -256,4 +260,22 @@ ipcMain.handle('window:auto-resize', async (_e, { width, height }) => {
 
     activationWindow.setSize(newWidth, newHeight);
   }
+});
+
+// --- Auto Updater Actions ---
+import { autoUpdater } from 'electron-updater';
+
+// تنزيل التحديث
+ipcMain.handle('update:download', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-downloading');
+  }
+  autoUpdater.downloadUpdate();
+  return { ok: true };
+});
+
+// تثبيت التحديث
+ipcMain.handle('update:install', () => {
+  autoUpdater.quitAndInstall(false, true);
+  return { ok: true };
 });

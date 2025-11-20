@@ -2,6 +2,8 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <!-- prefers-color-scheme -->
+    <meta name="color-scheme" content="dark light" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Codel Activation</title>
 
@@ -10,16 +12,33 @@
       @import url('./src/styles/main.css');
       @import url('./src/styles/tailwind.css');
 
-      :root {
-        --accent: #5b4df2;
-        --accent-hover: #6d60ff;
-        --fg: #e5e6eb;
-        --border: rgba(255, 255, 255, 0.13);
-        --mica: rgba(28, 28, 30, 1);
-        --card-bg: rgba(255, 255, 255, 0.06);
-        --card-bg-hover: rgba(255, 255, 255, 0.1);
-        --danger: #ff4a4a;
-        --success: #48d18d;
+      /* color schema dark/light based on system */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --accent: #5b4df2;
+          --accent-hover: #6d60ff;
+          --fg: #e5e6eb;
+          --border: rgba(255, 255, 255, 0.13);
+          --mica: rgba(28, 28, 30, 1);
+          --card-bg: rgba(255, 255, 255, 0.06);
+          --card-bg-hover: rgba(255, 255, 255, 0.1);
+          --danger: #ff4a4a;
+          --success: #48d18d;
+        }
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --accent: #5b4df2;
+          --accent-hover: #6d60ff;
+          --fg: #1c1c1e;
+          --border: rgba(0, 0, 0, 0.13);
+          --mica: rgba(242, 242, 247, 1);
+          --card-bg: rgba(0, 0, 0, 0.06);
+          --card-bg-hover: rgba(0, 0, 0, 0.1);
+          --danger: #d32f2f;
+          --success: #388e3c;
+        }
       }
 
       * {
@@ -398,7 +417,6 @@
           <h1>تفعيل نظام نقطة</h1>
           <p>حافظ على عمل النظام بشكل رسمي وآمن من خلال التفعيل.</p>
         </div>
-        <button id="closeBtn" class="close-btn">✕</button>
       </div>
 
       <div class="divider"></div>
@@ -488,7 +506,6 @@
       const fileInput = $('#fileInput');
       const statusBox = $('#statusBox');
       const supportBtn = $('#supportBtn');
-      const closeBtn = $('#closeBtn');
 
       async function loadMachineId() {
         if (window.electronAPI?.invoke) {
@@ -565,10 +582,6 @@
 
       callSupportBtn.onclick = () => {
         helpDialog.classList.add('open');
-      };
-
-      closeHelpDialogBtn.onclick = () => {
-        helpDialog.classList.remove('open');
       };
     </script>
   </body>
